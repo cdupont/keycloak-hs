@@ -155,12 +155,11 @@ deleteResource (ResourceId rid) mtok = do
 -- * Users --
 -------------
 
-getUsers :: Maybe Max -> Maybe First -> Keycloak [User]
-getUsers max first = do
-  tok <- getUserAuthToken "admin" "admin"
+getUsers :: Maybe Token -> Maybe Max -> Maybe First -> Keycloak [User]
+getUsers tok max first = do
   let query = maybe [] (\l -> [("limit", Just $ convertString $ show l)]) max
            ++ maybe [] (\m -> [("max", Just $ convertString $ show m)]) first
-  body <- keycloakAdminGet ("users" <> (convertString $ renderQuery True query)) (Just tok) 
+  body <- keycloakAdminGet ("users" <> (convertString $ renderQuery True query)) tok 
   debug $ "Keycloak success: " ++ (show body) 
   case eitherDecode body of
     Right ret -> do
@@ -241,7 +240,7 @@ keycloakDelete path tok = do
       warn $ "Keycloak HTTP error: " ++ (show err)
       throwError $ HTTPError err
 
--- Perform get to Keycloak.
+-- Perform get to Keycloak on admin API
 keycloakAdminGet :: Path -> Maybe Token -> Keycloak BL.ByteString
 keycloakAdminGet path mtok = do 
   (KCConfig baseUrl realm _ _ _ _ _ _) <- ask
