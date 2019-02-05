@@ -1,7 +1,7 @@
 keycloak-hs
 ===========
 
-keycloak-hs is a library for connecting to Keycloak made in Haskell.
+keycloak-hs is a library for connecting to [Keycloak](https://www.keycloak.org/) made in Haskell.
 Keycloak allows to authenticate users and protect resources.
 
 Warning: This package is experimental and still under development.
