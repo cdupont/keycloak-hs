@@ -40,10 +40,6 @@ data KCConfig = KCConfig {
   _realm         :: Text,
   _clientId      :: Text,
   _clientSecret  :: Text} deriving (Eq, Show)
---  _adminLogin    :: Username,
---  _adminPassword :: Password,
---  _guestLogin    :: Username,
---  _guestPassword :: Password}
 
 defaultKCConfig :: KCConfig
 defaultKCConfig = KCConfig {
@@ -51,10 +47,6 @@ defaultKCConfig = KCConfig {
   _realm         = "waziup",
   _clientId      = "api-server",
   _clientSecret  = "4e9dcb80-efcd-484c-b3d7-1e95a0096ac0"}
---  _adminLogin    = "cdupont",
---  _adminPassword = "password",
- -- _guestLogin    = "guest",
- -- _guestPassword = "guest"}
 
 type Path = Text
 
