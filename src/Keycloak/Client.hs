@@ -11,7 +11,6 @@ import qualified Control.Monad.Catch as C
 import           Control.Monad.Except (throwError, catchError, MonadError)
 import           Data.Aeson as JSON
 import           Data.Aeson.Types hiding ((.=))
-import           Data.Aeson.BetterErrors as AB
 import           Data.Text hiding (head, tail, map)
 import           Data.Text.Encoding
 import           Data.Maybe
@@ -117,9 +116,9 @@ getClientAuthToken = do
 decodeToken :: Token -> Either String TokenDec
 decodeToken (Token tok) = case (BS.split '.' tok) ^? element 1 of
     Nothing -> Left "Token is not formed correctly"
-    Just part2 -> case AB.parse parseTokenDec (traceShowId $ convertString $ B64.decodeLenient $ traceShowId part2) of
+    Just part2 -> case JSON.eitherDecode (convertString $ B64.decodeLenient $ part2) of
       Right td -> Right td
-      Left (e :: ParseError String) -> Left $ show e
+      Left e -> Left $ show e
 
 -- | Extract user name from a token
 getUsername :: Token -> Maybe Username

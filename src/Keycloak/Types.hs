@@ -13,7 +13,6 @@ import           Data.Text hiding (head, tail, map, toLower, drop)
 import           Data.Text.Encoding
 import           Data.Monoid
 import           Data.Maybe
-import           Data.Aeson.BetterErrors as AB
 import qualified Data.ByteString as BS
 import qualified Data.Word8 as W8 (isSpace, _colon, toLower)
 import           Data.Char
@@ -107,29 +106,32 @@ data TokenDec = TokenDec {
   email             :: Text
   } deriving (Generic, Show)
 
-parseTokenDec :: Parse e TokenDec
-parseTokenDec = TokenDec <$>
-    AB.key "jti" asText <*>
-    AB.key "exp" asIntegral <*>
-    AB.key "nbf" asIntegral <*>
-    AB.key "iat" asIntegral <*>
-    AB.key "iss" asText <*>
-    AB.key "aud" asText <*>
-    AB.key "sub" asText <*>
-    AB.key "typ" asText <*>
-    AB.key "azp" asText <*>
-    AB.key "auth_time" asIntegral <*>
-    AB.key "session_state" asText <*>
-    AB.key "acr" asText <*>
-    AB.key "allowed-origins" asValue <*>
-    AB.key "realm_access" asValue <*>
-    AB.key "resource_access" asValue <*>
-    AB.key "scope" asText <*>
-    AB.key "name" asText <*>
-    AB.key "preferred_username" asText <*>
-    AB.key "given_name" asText <*>
-    AB.key "family_name" asText <*>
-    AB.key "email" asText
+instance FromJSON TokenDec where
+  parseJSON = genericParseJSON defaultOptions
+
+--parseTokenDec :: Parse e TokenDec
+--parseTokenDec = TokenDec <$>
+--    AB.key "jti" asText <*>
+--    AB.key "exp" asIntegral <*>
+--    AB.key "nbf" asIntegral <*>
+--    AB.key "iat" asIntegral <*>
+--    AB.key "iss" asText <*>
+--    AB.key "aud" asText <*>
+--    AB.key "sub" asText <*>
+--    AB.key "typ" asText <*>
+--    AB.key "azp" asText <*>
+--    AB.key "auth_time" asIntegral <*>
+--    AB.key "session_state" asText <*>
+--    AB.key "acr" asText <*>
+--    AB.key "allowed-origins" asValue <*>
+--    AB.key "realm_access" asValue <*>
+--    AB.key "resource_access" asValue <*>
+--    AB.key "scope" asText <*>
+--    AB.key "name" asText <*>
+--    AB.key "preferred_username" asText <*>
+--    AB.key "given_name" asText <*>
+--    AB.key "family_name" asText <*>
+--    AB.key "email" asText
 
 
 -- * Permission

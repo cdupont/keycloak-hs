@@ -1,6 +1,6 @@
 cabal-version: 1.12
 name:           keycloak-hs
-version:        0.0.0.0
+version:        0.0.0.2
 description:    Please see the README on GitHub at <https://github.com/cdupont/keycloak-hs#readme>
 homepage:       https://github.com/cdupont/keycloak-hs#readme
 bug-reports:    https://github.com/cdupont/keycloak-hs/issues
@@ -20,8 +20,9 @@ source-repository head
 
 library
   exposed-modules:
-      Keycloak.Client
-      Keycloak.Types
+        Keycloak.Client
+      , Keycloak.Types
+      , Keycloak
   other-modules:
       Paths_keycloak_hs
   hs-source-dirs:
@@ -36,7 +37,6 @@ library
     , text
     , aeson
     , aeson-casing
-    , aeson-better-errors
     , http-api-data
     , http-types
     , hslogger
