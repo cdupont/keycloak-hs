@@ -32,11 +32,9 @@ import           Debug.Trace
 import           System.IO.Unsafe
 
 
--------------------
--- * Permissions --
--------------------
+-- * Permissions
 
--- Checks is a scope is permitted on a resource. An HTTP Exception 403 will be thrown if not.
+-- |Checks is a scope is permitted on a resource. An HTTP Exception 403 will be thrown if not.
 checkPermission :: ResourceId -> ScopeName -> Token -> Keycloak ()
 checkPermission (ResourceId res) scope tok = do
   debug $ "Checking permissions: " ++ (show res) ++ " " ++ (show scope)
@@ -47,6 +45,7 @@ checkPermission (ResourceId res) scope tok = do
   keycloakPost "protocol/openid-connect/token" dat tok
   return ()
 
+-- | Returns true id the resource is authorized under the given scope.
 isAuthorized :: ResourceId -> ScopeName -> Token -> Keycloak Bool
 isAuthorized res scope tok = do
   r <- try $ checkPermission res scope tok
@@ -55,6 +54,7 @@ isAuthorized res scope tok = do
     Left e | (statusCode <$> getErrorStatus e) == Just 403 -> return False
     Left e -> throwError e --rethrow the error
 
+-- | Return the permissions for all resources, under the given scopes.
 getAllPermissions :: [ScopeName] -> Token -> Keycloak [Permission]
 getAllPermissions scopes tok = do
   debug "Get all permissions"
@@ -73,11 +73,10 @@ getAllPermissions scopes tok = do
       throwError $ ParseError $ pack (show err2)
 
 
---------------
--- * Tokens --
---------------
-  
-getUserAuthToken :: Text -> Text -> Keycloak Token
+-- * Tokens
+
+-- | Retrieve the user's token
+getUserAuthToken :: Username -> Password -> Keycloak Token
 getUserAuthToken username password = do 
   debug "Get user token"
   client <- asks _clientId
@@ -97,6 +96,7 @@ getUserAuthToken username password = do
       debug $ "Keycloak parse error: " ++ (show err2) 
       throwError $ ParseError $ pack (show err2)
 
+-- | return a Client token
 getClientAuthToken :: Keycloak Token
 getClientAuthToken = do
   debug "Get client token"
@@ -121,6 +121,7 @@ decodeToken (Token tok) = case (BS.split '.' tok) ^? element 1 of
       Right td -> Right td
       Left (e :: ParseError String) -> Left $ show e
 
+-- | Extract user name from a token
 getUsername :: Token -> Maybe Username
 getUsername tok = do 
   case decodeToken tok of
@@ -129,10 +130,10 @@ getUsername tok = do
       traceM $ "Error while decoding token: " ++ (show e)
       Nothing
 
-----------------
--- * Resource --
-----------------
 
+-- * Resource
+
+-- | Create a resource.
 createResource :: Resource -> Token -> Keycloak ResourceId
 createResource r tok = do
   debug $ convertString $ "Creating resource: " <> (JSON.encode r)
@@ -146,16 +147,16 @@ createResource r tok = do
       debug $ "Keycloak parse error: " ++ (show err2) 
       throwError $ ParseError $ pack (show err2)
 
+-- | Delete the resource
 deleteResource :: ResourceId -> Token -> Keycloak ()
 deleteResource (ResourceId rid) tok = do
   keycloakDelete ("authz/protection/resource_set/" <> rid) tok 
   return ()
 
 
--------------
--- * Users --
--------------
+-- * Users
 
+-- | Get users. Default number of users is 100. Parameters max and first allow to paginate and retrieve more than 100 users.
 getUsers :: Maybe Max -> Maybe First -> Token -> Keycloak [User]
 getUsers max first tok = do
   let query = maybe [] (\l -> [("limit", Just $ convertString $ show l)]) max
@@ -170,6 +171,7 @@ getUsers max first tok = do
       debug $ "Keycloak parse error: " ++ (show err2) 
       throwError $ ParseError $ pack (show err2)
 
+-- | Get a single user, based on his Id
 getUser :: UserId -> Token -> Keycloak User
 getUser (UserId id) tok = do
   body <- keycloakAdminGet ("users/" <> (convertString id)) tok 
@@ -183,10 +185,9 @@ getUser (UserId id) tok = do
       throwError $ ParseError $ pack (show err2)
 
 
--------------------------
--- * Keycloak requests --
--------------------------
--- Perform post to Keycloak.
+-- * Keycloak basic requests
+
+-- | Perform post to Keycloak.
 keycloakPost :: (Postable dat, Show dat) => Path -> dat -> Token -> Keycloak BL.ByteString
 keycloakPost path dat tok = do 
   (KCConfig baseUrl realm _ _) <- ask
@@ -203,6 +204,7 @@ keycloakPost path dat tok = do
       warn $ "Keycloak HTTP error: " ++ (show err)
       throwError $ HTTPError err
 
+-- | Perform post to Keycloak, without token.
 keycloakPost' :: (Postable dat, Show dat) => Path -> dat -> Keycloak BL.ByteString
 keycloakPost' path dat = do 
   (KCConfig baseUrl realm _ _) <- ask
@@ -219,7 +221,7 @@ keycloakPost' path dat = do
       warn $ "Keycloak HTTP error: " ++ (show err)
       throwError $ HTTPError err
 
--- Perform delete to Keycloak.
+-- | Perform delete to Keycloak.
 keycloakDelete :: Path -> Token -> Keycloak ()
 keycloakDelete path tok = do 
   (KCConfig baseUrl realm _ _) <- ask
@@ -234,7 +236,7 @@ keycloakDelete path tok = do
       warn $ "Keycloak HTTP error: " ++ (show err)
       throwError $ HTTPError err
 
--- Perform get to Keycloak on admin API
+-- | Perform get to Keycloak on admin API
 keycloakAdminGet :: Path -> Token -> Keycloak BL.ByteString
 keycloakAdminGet path tok = do 
   (KCConfig baseUrl realm _ _) <- ask
@@ -251,9 +253,7 @@ keycloakAdminGet path tok = do
       throwError $ HTTPError err
 
 
----------------
--- * Helpers --
----------------
+-- * Helpers
 
 debug, warn, info, err :: (MonadIO m) => String -> m ()
 debug s = liftIO $ debugM "API" s

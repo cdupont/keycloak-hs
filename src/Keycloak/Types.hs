@@ -17,7 +17,7 @@ import           Data.Aeson.BetterErrors as AB
 import qualified Data.ByteString as BS
 import qualified Data.Word8 as W8 (isSpace, _colon, toLower)
 import           Data.Char
-import           Control.Monad.Except (ExceptT)
+import           Control.Monad.Except (ExceptT, runExceptT)
 import           Control.Monad.Reader as R
 import           Control.Lens hiding ((.=))
 import           GHC.Generics (Generic)
@@ -25,22 +25,24 @@ import           Web.HttpApiData (FromHttpApiData(..), ToHttpApiData(..))
 import           Network.HTTP.Client as HC hiding (responseBody)
 
 
-----------------------
--- * Keycloak Monad --
-----------------------
+-- * Keycloak Monad
 
+-- | Keycloak Monad stack: a simple Reader monad containing the config, and an ExceptT to handle HTTPErrors and parse errors.
 type Keycloak a = ReaderT KCConfig (ExceptT KCError IO) a
 
+-- | Contains HTTP errors and parse errors.
 data KCError = HTTPError HttpException  -- ^ Keycloak returned an HTTP error.
              | ParseError Text          -- ^ Failed when parsing the response
              | EmptyError               -- ^ Empty error to serve as a zero element for Monoid.
 
+-- | Configuration of Keycloak.
 data KCConfig = KCConfig {
   _baseUrl       :: Text,
   _realm         :: Text,
   _clientId      :: Text,
   _clientSecret  :: Text} deriving (Eq, Show)
 
+-- | Default configuration
 defaultKCConfig :: KCConfig
 defaultKCConfig = KCConfig {
   _baseUrl       = "http://localhost:8080/auth",
@@ -48,13 +50,16 @@ defaultKCConfig = KCConfig {
   _clientId      = "api-server",
   _clientSecret  = "4e9dcb80-efcd-484c-b3d7-1e95a0096ac0"}
 
+-- | Run a Keycloak monad within IO.
+runKeycloak :: Keycloak a -> KCConfig -> IO (Either KCError a)
+runKeycloak kc conf = runExceptT $ runReaderT kc conf
+
 type Path = Text
 
 
--------------
--- * Token --
--------------
+-- * Token
 
+-- | Wrapper for tokens.
 newtype Token = Token {unToken :: BS.ByteString} deriving (Eq, Show, Generic)
 
 instance FromJSON Token where
@@ -76,29 +81,30 @@ extractBearerAuth bs =
 
 instance ToHttpApiData Token where
   toQueryParam (Token token) = "Bearer " <> (decodeUtf8 token)
-  
+ 
+-- | Token description returned by Keycloak
 data TokenDec = TokenDec {
-  jti :: Text,
-  exp :: Int,
-  nbf :: Int,
-  iat :: Int,
-  iss :: Text,
-  aud :: Text,
-  sub :: Text,
-  typ :: Text,
-  azp :: Text,
-  authTime :: Int,
-  sessionState :: Text,
-  acr :: Text,
-  allowedOrigins :: Value,
-  realmAccess :: Value,
-  ressourceAccess :: Value,
-  scope :: Text,
-  name :: Text,
+  jti               :: Text,
+  exp               :: Int,
+  nbf               :: Int,
+  iat               :: Int,
+  iss               :: Text,
+  aud               :: Text,
+  sub               :: Text,
+  typ               :: Text,
+  azp               :: Text,
+  authTime          :: Int,
+  sessionState      :: Text,
+  acr               :: Text,
+  allowedOrigins    :: Value,
+  realmAccess       :: Value,
+  ressourceAccess   :: Value,
+  scope             :: Text,
+  name              :: Text,
   preferredUsername :: Text,
-  givenName :: Text,
-  familyName :: Text,
-  email :: Text
+  givenName         :: Text,
+  familyName        :: Text,
+  email             :: Text
   } deriving (Generic, Show)
 
 parseTokenDec :: Parse e TokenDec
@@ -125,12 +131,13 @@ parseTokenDec = TokenDec <$>
     AB.key "family_name" asText <*>
     AB.key "email" asText
 
-------------------
--- * Permission --
-------------------
 
+-- * Permission
+
+-- | Scope name
 type ScopeName = Text
 
+-- | Scope Id
 newtype ScopeId = ScopeId {unScopeId :: Text} deriving (Show, Eq, Generic)
 
 --JSON instances
@@ -140,6 +147,7 @@ instance ToJSON ScopeId where
 instance FromJSON ScopeId where
   parseJSON = genericParseJSON (defaultOptions {unwrapUnaryRecords = True})
 
+-- | Keycloak scope
 data Scope = Scope {
   scopeId   :: Maybe ScopeId,
   scopeName :: ScopeName
@@ -151,6 +159,7 @@ instance ToJSON Scope where
 instance FromJSON Scope where
   parseJSON = genericParseJSON defaultOptions {fieldLabelModifier = unCapitalize . drop 5}
 
+-- | Keycloak permission on a resource
 data Permission = Permission 
   { rsname :: ResourceName,
     rsid   :: ResourceId,
@@ -163,18 +172,15 @@ instance ToJSON Permission where
 instance FromJSON Permission where
   parseJSON = genericParseJSON defaultOptions
 
+
+-- * User
+
 type Username = Text
 type Password = Text
-
-
-------------
--- * User --
-------------
-
 type First = Int
 type Max = Int
 
--- Id of a user
+-- | Id of a user
 newtype UserId = UserId {unUserId :: Text} deriving (Show, Eq, Generic)
 
 --JSON instances
@@ -203,10 +209,11 @@ instance FromJSON User where
 instance ToJSON User where
   toJSON = genericToJSON defaultOptions {fieldLabelModifier = drop 4, omitNothingFields = True}
 
--------------
--- * Owner --
--------------
 
+
+-- * Owner
+
+-- | A resource owner
 data Owner = Owner {
   ownId   :: Maybe Text,
   ownName :: Username
@@ -219,12 +226,11 @@ instance ToJSON Owner where
   toJSON = genericToJSON $ (aesonDrop 3 snakeCase) {omitNothingFields = True}
 
 
-----------------
--- * Resource --
-----------------
+-- * Resource
 
 type ResourceName = Text
 
+-- | A resource Id
 newtype ResourceId = ResourceId {unResId :: Text} deriving (Show, Eq, Generic)
 
 -- JSON instances
@@ -234,15 +240,16 @@ instance ToJSON ResourceId where
 instance FromJSON ResourceId where
   parseJSON = genericParseJSON (defaultOptions {unwrapUnaryRecords = True})
 
+-- | A complete resource
 data Resource = Resource {
-     resId      :: Maybe ResourceId,
-     resName    :: ResourceName,
-     resType    :: Maybe Text,
-     resUris    :: [Text],
-     resScopes  :: [Scope],
-     resOwner   :: Owner,
+     resId                 :: Maybe ResourceId,
+     resName               :: ResourceName,
+     resType               :: Maybe Text,
+     resUris               :: [Text],
+     resScopes             :: [Scope],
+     resOwner              :: Owner,
      resOwnerManagedAccess :: Bool,
-     resAttributes :: [Attribute]
+     resAttributes         :: [Attribute]
   } deriving (Generic, Show)
 
 instance FromJSON Resource where
@@ -266,6 +273,7 @@ instance ToJSON Resource where
             "ownerManagedAccess" .= toJSON uma,
             "attributes"         .= object (map (\(Attribute name vals) -> name .= toJSON vals) attrs)]
 
+-- | A resource attribute
 data Attribute = Attribute {
   attName   :: Text,
   attValues :: [Text]
