@@ -14,6 +14,7 @@ import           Data.Aeson.Types hiding ((.=))
 import           Data.Text hiding (head, tail, map)
 import           Data.Text.Encoding
 import           Data.Maybe
+import           Data.Map hiding (map)
 import           Data.ByteString.Base64 as B64
 import           Data.String.Conversions
 import           Data.Monoid hiding (First)
@@ -29,7 +30,7 @@ import           Network.Wreq.Types
 import           System.Log.Logger
 import           Debug.Trace
 import           System.IO.Unsafe
-
+import           Web.JWT as JWT
 
 -- * Permissions
 
@@ -122,11 +123,13 @@ decodeToken (Token tok) = case (BS.split '.' tok) ^? element 1 of
 
 -- | Extract user name from a token
 getUsername :: Token -> Maybe Username
-getUsername tok = do 
-  case decodeToken tok of
-    Right t -> Just $ preferredUsername t
-    Left e -> do
-      traceM $ "Error while decoding token: " ++ (show e)
+getUsername (Token tok) = do 
+  case JWT.decode $ (traceShowId (convertString tok)) of
+    Just t -> case (traceShowId (unClaimsMap $ unregisteredClaims $ claims t)) !? "preferred_username" of
+      Just (String un) -> Just un
+      _ -> Nothing
+    Nothing -> do
+      traceM $ "Error while decoding token"
       Nothing
 
 

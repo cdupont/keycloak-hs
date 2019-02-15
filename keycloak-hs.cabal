@@ -44,6 +44,8 @@ library
     , wreq
     , base64-bytestring
     , exceptions
+    , jwt
+    , containers
   default-language: Haskell2010
 
 
