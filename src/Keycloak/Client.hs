@@ -34,7 +34,7 @@ import           Web.JWT as JWT
 
 -- * Permissions
 
--- |Checks is a scope is permitted on a resource. An HTTP Exception 403 will be thrown if not.
+-- | Checks if a scope is permitted on a resource. An HTTP Exception 403 will be thrown if not.
 checkPermission :: ResourceId -> ScopeName -> Token -> Keycloak ()
 checkPermission (ResourceId res) scope tok = do
   debug $ "Checking permissions: " ++ (show res) ++ " " ++ (show scope)
@@ -91,7 +91,7 @@ getUserAuthToken username password = do
   case eitherDecode body of
     Right ret -> do 
       debug $ "Keycloak success: " ++ (show ret) 
-      return ret
+      return $ Token $ convertString $ accessToken ret
     Left err2 -> do
       debug $ "Keycloak parse error: " ++ (show err2) 
       throwError $ ParseError $ pack (show err2)
@@ -109,17 +109,11 @@ getClientAuthToken = do
   case eitherDecode body of
     Right ret -> do
       debug $ "Keycloak success: " ++ (show ret) 
-      return $ ret
+      return $ Token $ convertString $ accessToken ret
     Left err2 -> do
       debug $ "Keycloak parse error: " ++ (show err2) 
       throwError $ ParseError $ pack (show err2)
 
-decodeToken :: Token -> Either String TokenDec
-decodeToken (Token tok) = case (BS.split '.' tok) ^? element 1 of
-    Nothing -> Left "Token is not formed correctly"
-    Just part2 -> case JSON.eitherDecode (convertString $ B64.decodeLenient $ part2) of
-      Right td -> Right td
-      Left e -> Left $ show e
 
 -- | Extract user name from a token
 getUsername :: Token -> Maybe Username

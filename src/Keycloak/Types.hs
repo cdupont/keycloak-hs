@@ -22,7 +22,7 @@ import           Control.Lens hiding ((.=))
 import           GHC.Generics (Generic)
 import           Web.HttpApiData (FromHttpApiData(..), ToHttpApiData(..))
 import           Network.HTTP.Client as HC hiding (responseBody)
-
+import           Web.JWT as JWT
 
 -- * Keycloak Monad
 
@@ -61,11 +61,7 @@ type Path = Text
 -- | Wrapper for tokens.
 newtype Token = Token {unToken :: BS.ByteString} deriving (Eq, Show, Generic)
 
-instance FromJSON Token where
-  parseJSON (Object v) = do
-    t <- v .: "access_token"
-    return $ Token $ encodeUtf8 t 
-
+-- | parser for Authorization header
 instance FromHttpApiData Token where
   parseQueryParam = parseHeader . encodeUtf8
   parseHeader (extractBearerAuth -> Just tok) = Right $ Token tok
@@ -78,61 +74,59 @@ extractBearerAuth bs =
         then Just $ BS.dropWhile W8.isSpace y
         else Nothing
 
+-- | Create Authorization header
 instance ToHttpApiData Token where
   toQueryParam (Token token) = "Bearer " <> (decodeUtf8 token)
  
--- | Token description returned by Keycloak
-data TokenDec = TokenDec {
-  jti               :: Text,
-  exp               :: Int,
-  nbf               :: Int,
-  iat               :: Int,
-  iss               :: Text,
-  aud               :: Text,
-  sub               :: Text,
-  typ               :: Text,
-  azp               :: Text,
-  authTime          :: Int,
+-- | Keycloak Token additional claims
+tokNonce, tokAuthTime, tokSessionState, tokAtHash, tokCHash, tokName, tokGivenName, tokFamilyName, tokMiddleName, tokNickName, tokPreferredUsername, tokProfile, tokPicture, tokWebsite, tokEmail, tokEmailVerified, tokGender, tokBirthdate, tokZoneinfo, tokLocale, tokPhoneNumber, tokPhoneNumberVerified,tokAddress, tokUpdateAt, tokClaimsLocales, tokACR :: Text
+tokNonce               = "nonce";
+tokAuthTime            = "auth_time";
+tokSessionState        = "session_state";
+tokAtHash              = "at_hash";
+tokCHash               = "c_hash";
+tokName                = "name";
+tokGivenName           = "given_name";
+tokFamilyName          = "family_name";
+tokMiddleName          = "middle_name";
+tokNickName            = "nickname";
+tokPreferredUsername   = "preferred_username";
+tokProfile             = "profile";
+tokPicture             = "picture";
+tokWebsite             = "website";
+tokEmail               = "email";
+tokEmailVerified       = "email_verified";
+tokGender              = "gender";
+tokBirthdate           = "birthdate";
+tokZoneinfo            = "zoneinfo";
+tokLocale              = "locale";
+tokPhoneNumber         = "phone_number";
+tokPhoneNumberVerified = "phone_number_verified";
+tokAddress             = "address";
+tokUpdateAt            = "updated_at";
+tokClaimsLocales       = "claims_locales";
+tokACR                 = "acr";
+
+-- | Token reply from Keycloak
+data TokenRep = TokenRep {
+  accessToken       :: JWT.JSON,
+  expiresIn         :: Int,
+  refreshExpriresIn :: Int,
+  refreshToken      :: JWT.JSON,
+  tokenType         :: Text,
+  notBeforePolicy   :: Int,
   sessionState      :: Text,
-  acr               :: Text,
-  allowedOrigins    :: Value,
-  realmAccess       :: Value,
-  ressourceAccess   :: Value,
-  scope             :: Text,
-  name              :: Text,
-  preferredUsername :: Text,
-  givenName         :: Text,
-  familyName        :: Text,
-  email             :: Text
-  } deriving (Generic, Show)
+  scope             :: Text} deriving (Show, Eq)
 
-instance FromJSON TokenDec where
-  parseJSON = genericParseJSON defaultOptions
-
---parseTokenDec :: Parse e TokenDec
---parseTokenDec = TokenDec <$>
---    AB.key "jti" asText <*>
---    AB.key "exp" asIntegral <*>
---    AB.key "nbf" asIntegral <*>
---    AB.key "iat" asIntegral <*>
---    AB.key "iss" asText <*>
---    AB.key "aud" asText <*>
---    AB.key "sub" asText <*>
---    AB.key "typ" asText <*>
---    AB.key "azp" asText <*>
---    AB.key "auth_time" asIntegral <*>
---    AB.key "session_state" asText <*>
---    AB.key "acr" asText <*>
---    AB.key "allowed-origins" asValue <*>
---    AB.key "realm_access" asValue <*>
---    AB.key "resource_access" asValue <*>
---    AB.key "scope" asText <*>
---    AB.key "name" asText <*>
---    AB.key "preferred_username" asText <*>
---    AB.key "given_name" asText <*>
---    AB.key "family_name" asText <*>
---    AB.key "email" asText
-
+instance FromJSON TokenRep where
+  parseJSON (Object v) = TokenRep <$> v .: "access_token"
+                                  <*> v .: "expires_in"
+                                  <*> v .: "refresh_expires_in"
+                                  <*> v .: "refresh_token"
+                                  <*> v .: "token_type"
+                                  <*> v .: "not-before-policy"
+                                  <*> v .: "session_state"
+                                  <*> v .: "scope"
 
 -- * Permission
 
