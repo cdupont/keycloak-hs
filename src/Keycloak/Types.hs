@@ -12,7 +12,9 @@ import           Data.Aeson.Casing
 import           Data.Text hiding (head, tail, map, toLower, drop)
 import           Data.Text.Encoding
 import           Data.Monoid
+import           Data.String.Conversions
 import           Data.Maybe
+import           Data.Map hiding (drop, map)
 import qualified Data.ByteString as BS
 import qualified Data.Word8 as W8 (isSpace, _colon, toLower)
 import           Data.Char
@@ -60,6 +62,9 @@ type Path = Text
 
 -- | Wrapper for tokens.
 newtype Token = Token {unToken :: BS.ByteString} deriving (Eq, Show, Generic)
+
+instance ToJSON Token where
+  toJSON (Token t) = String $ convertString t
 
 -- | parser for Authorization header
 instance FromHttpApiData Token where
@@ -192,7 +197,8 @@ data User = User
   , userUsername  :: Username       -- ^ Username
   , userFirstName :: Maybe Text     -- ^ First name
   , userLastName  :: Maybe Text     -- ^ Last name
-  , userEmail     :: Maybe Text     -- ^ Email 
+  , userEmail     :: Maybe Text     -- ^ Email
+  , userAttributes :: Maybe (Map Text [Text]) 
   } deriving (Show, Eq, Generic)
 
 unCapitalize :: String -> String
@@ -203,7 +209,7 @@ instance FromJSON User where
   parseJSON = genericParseJSON defaultOptions {fieldLabelModifier = unCapitalize . drop 4}
 
 instance ToJSON User where
-  toJSON = genericToJSON defaultOptions {fieldLabelModifier = drop 4, omitNothingFields = True}
+  toJSON = genericToJSON defaultOptions {fieldLabelModifier = unCapitalize . drop 4, omitNothingFields = True}
 
 
 

@@ -11,11 +11,11 @@ import qualified Control.Monad.Catch as C
 import           Control.Monad.Except (throwError, catchError, MonadError)
 import           Data.Aeson as JSON
 import           Data.Aeson.Types hiding ((.=))
-import           Data.Text hiding (head, tail, map)
+import           Data.Text as T hiding (head, tail, map, lookup)
 import           Data.Text.Encoding
 import           Data.Maybe
-import           Data.Map hiding (map)
-import           Data.ByteString.Base64 as B64
+import           Data.List as L
+import           Data.Map hiding (map, lookup)
 import           Data.String.Conversions
 import           Data.Monoid hiding (First)
 import qualified Data.ByteString.Char8 as BS
@@ -118,8 +118,8 @@ getClientAuthToken = do
 -- | Extract user name from a token
 getUsername :: Token -> Maybe Username
 getUsername (Token tok) = do 
-  case JWT.decode $ (traceShowId (convertString tok)) of
-    Just t -> case (traceShowId (unClaimsMap $ unregisteredClaims $ claims t)) !? "preferred_username" of
+  case JWT.decode $ convertString tok of
+    Just t -> case (unClaimsMap $ unregisteredClaims $ claims t) !? "preferred_username" of
       Just (String un) -> Just un
       _ -> Nothing
     Nothing -> do
@@ -153,10 +153,11 @@ deleteResource (ResourceId rid) tok = do
 -- * Users
 
 -- | Get users. Default number of users is 100. Parameters max and first allow to paginate and retrieve more than 100 users.
-getUsers :: Maybe Max -> Maybe First -> Token -> Keycloak [User]
-getUsers max first tok = do
+getUsers :: Maybe Max -> Maybe First -> Maybe Username -> Token -> Keycloak [User]
+getUsers max first username tok = do
   let query = maybe [] (\l -> [("limit", Just $ convertString $ show l)]) max
            ++ maybe [] (\m -> [("max", Just $ convertString $ show m)]) first
+           ++ maybe [] (\u -> [("username", Just $ convertString u)]) username
   body <- keycloakAdminGet ("users" <> (convertString $ renderQuery True query)) tok 
   debug $ "Keycloak success: " ++ (show body) 
   case eitherDecode body of
@@ -179,6 +180,19 @@ getUser (UserId id) tok = do
     Left (err2 :: String) -> do
       debug $ "Keycloak parse error: " ++ (show err2) 
       throwError $ ParseError $ pack (show err2)
+
+-- | Get a single user, based on his Id
+postUser :: User -> Token -> Keycloak UserId
+postUser user tok = do
+  res <- keycloakAdminPost ("users/") (toJSON user) tok 
+  debug $ "Keycloak success: " ++ (show res) 
+  return $ UserId $ convertString res
+
+-- | Get a single user, based on his Id
+putUser :: UserId -> User -> Token -> Keycloak ()
+putUser (UserId id) user tok = do
+  keycloakAdminPut ("users/" <> (convertString id)) (toJSON user) tok 
+  return ()
 
 
 -- * Keycloak basic requests
@@ -248,14 +262,47 @@ keycloakAdminGet path tok = do
       warn $ "Keycloak HTTP error: " ++ (show err)
       throwError $ HTTPError err
 
+-- | Perform post to Keycloak.
+keycloakAdminPost :: (Postable dat, Show dat) => Path -> dat -> Token -> Keycloak BL.ByteString
+keycloakAdminPost path dat tok = do 
+  (KCConfig baseUrl realm _ _) <- ask
+  let opts = W.defaults & W.header "Authorization" .~ ["Bearer " <> (unToken tok)]
+  let url = (unpack $ baseUrl <> "/admin/realms/" <> realm <> "/" <> path) 
+  info $ "Issuing KEYCLOAK POST with url: " ++ (show url) 
+  debug $ "  data: " ++ (show dat) 
+  debug $ "  headers: " ++ (show $ opts ^. W.headers) 
+  eRes <- C.try $ liftIO $ W.postWith opts url dat
+  case eRes of 
+    Right res -> do
+      debug $ (show eRes)
+      let headers = fromJust $ res ^? W.responseHeaders
+      return $ convertString $ L.last $ T.split (== '/') $ convertString $ fromJust $ lookup "Location" headers
+    Left err -> do
+      warn $ "Keycloak HTTP error: " ++ (show err)
+      throwError $ HTTPError err
 
+-- | Perform put to Keycloak.
+keycloakAdminPut :: (Putable dat, Show dat) => Path -> dat -> Token -> Keycloak ()
+keycloakAdminPut path dat tok = do 
+  (KCConfig baseUrl realm _ _) <- ask
+  let opts = W.defaults & W.header "Authorization" .~ ["Bearer " <> (unToken tok)]
+  let url = (unpack $ baseUrl <> "/admin/realms/" <> realm <> "/" <> path) 
+  info $ "Issuing KEYCLOAK PUT with url: " ++ (show url) 
+  debug $ "  data: " ++ (show dat) 
+  debug $ "  headers: " ++ (show $ opts ^. W.headers) 
+  eRes <- C.try $ liftIO $ W.putWith opts url dat
+  case eRes of 
+    Right res -> return ()
+    Left err -> do
+      warn $ "Keycloak HTTP error: " ++ (show err)
+      throwError $ HTTPError err
 -- * Helpers
 
 debug, warn, info, err :: (MonadIO m) => String -> m ()
-debug s = liftIO $ debugM "API" s
-info s  = liftIO $ infoM "API" s
-warn s  = liftIO $ warningM "API" s
-err s   = liftIO $ errorM "API" s
+debug s = liftIO $ debugM "Keycloak" s
+info s  = liftIO $ infoM "Keycloak" s
+warn s  = liftIO $ warningM "Keycloak" s
+err s   = liftIO $ errorM "Keycloak" s
 
 getErrorStatus :: KCError -> Maybe Status 
 getErrorStatus (HTTPError (HttpExceptionRequest _ (StatusCodeException r _))) = Just $ HC.responseStatus r
