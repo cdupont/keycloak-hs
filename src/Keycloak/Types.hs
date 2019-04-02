@@ -271,7 +271,7 @@ instance ToJSON Resource where
     object ["name"               .= toJSON name,
             "uris"               .= toJSON uris,
             "scopes"             .= toJSON scopes,
-            "owner"              .= toJSON own,
+            "owner"              .= (toJSON $ ownName own),
             "ownerManagedAccess" .= toJSON uma,
             "attributes"         .= object (map (\(Attribute name vals) -> name .= toJSON vals) attrs)]
 

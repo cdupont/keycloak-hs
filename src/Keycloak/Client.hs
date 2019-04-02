@@ -133,7 +133,10 @@ getUsername (Token tok) = do
 createResource :: Resource -> Token -> Keycloak ResourceId
 createResource r tok = do
   debug $ convertString $ "Creating resource: " <> (JSON.encode r)
-  body <- keycloakPost "authz/protection/resource_set" (toJSON r) tok
+  -- The user token might not be suitable because it can use another client (such as "dashboard"). 
+  -- however we need "api-server" as client because it's the resource authorization server.
+  tok2 <- getClientAuthToken 
+  body <- keycloakPost "authz/protection/resource_set" (toJSON r) tok2
   debug $ convertString $ "Created resource: " ++ convertString body
   case eitherDecode body of
     Right ret -> do
@@ -146,7 +149,8 @@ createResource r tok = do
 -- | Delete the resource
 deleteResource :: ResourceId -> Token -> Keycloak ()
 deleteResource (ResourceId rid) tok = do
-  keycloakDelete ("authz/protection/resource_set/" <> rid) tok 
+  tok2 <- getClientAuthToken 
+  keycloakDelete ("authz/protection/resource_set/" <> rid) tok2 
   return ()
 
 
