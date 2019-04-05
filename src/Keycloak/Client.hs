@@ -116,15 +116,13 @@ getClientAuthToken = do
 
 
 -- | Extract user name from a token
-getUsername :: Token -> Maybe Username
+getUsername :: Token -> Username
 getUsername (Token tok) = do 
   case JWT.decode $ convertString tok of
     Just t -> case (unClaimsMap $ unregisteredClaims $ claims t) !? "preferred_username" of
-      Just (String un) -> Just un
-      _ -> Nothing
-    Nothing -> do
-      traceM $ "Error while decoding token"
-      Nothing
+      Just (String un) -> un
+      _ -> error "preferred_username not present in token" 
+    Nothing -> error "Error while decoding token"
 
 
 -- * Resource
