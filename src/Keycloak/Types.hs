@@ -269,6 +269,7 @@ instance FromJSON Resource where
 instance ToJSON Resource where
   toJSON (Resource id name typ uris scopes own uma attrs) =
     object ["name"               .= toJSON name,
+            "type"               .= toJSON typ,
             "uris"               .= toJSON uris,
             "scopes"             .= toJSON scopes,
             "owner"              .= (toJSON $ ownName own),
