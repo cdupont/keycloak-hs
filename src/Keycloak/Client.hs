@@ -66,7 +66,6 @@ getAllPermissions scopes tok = do
   body <- keycloakPost "protocol/openid-connect/token" dat tok
   case eitherDecode body of
     Right ret -> do
-      debug $ "Keycloak success: " ++ (show ret) 
       return ret
     Left (err2 :: String) -> do
       debug $ "Keycloak parse error: " ++ (show err2) 
@@ -207,7 +206,7 @@ keycloakPost path dat tok = do
   let url = (unpack $ baseUrl <> "/realms/" <> realm <> "/" <> path) 
   info $ "Issuing KEYCLOAK POST with url: " ++ (show url) 
   debug $ "  data: " ++ (show dat) 
-  debug $ "  headers: " ++ (show $ opts ^. W.headers) 
+  --debug $ "  headers: " ++ (show $ opts ^. W.headers) 
   eRes <- C.try $ liftIO $ W.postWith opts url dat
   case eRes of 
     Right res -> do
@@ -224,7 +223,7 @@ keycloakPost' path dat = do
   let url = (unpack $ baseUrl <> "/realms/" <> realm <> "/" <> path) 
   info $ "Issuing KEYCLOAK POST with url: " ++ (show url) 
   debug $ "  data: " ++ (show dat) 
-  debug $ "  headers: " ++ (show $ opts ^. W.headers) 
+  --debug $ "  headers: " ++ (show $ opts ^. W.headers) 
   eRes <- C.try $ liftIO $ W.postWith opts url dat
   case eRes of 
     Right res -> do
@@ -272,7 +271,7 @@ keycloakAdminPost path dat tok = do
   let url = (unpack $ baseUrl <> "/admin/realms/" <> realm <> "/" <> path) 
   info $ "Issuing KEYCLOAK POST with url: " ++ (show url) 
   debug $ "  data: " ++ (show dat) 
-  debug $ "  headers: " ++ (show $ opts ^. W.headers) 
+  --debug $ "  headers: " ++ (show $ opts ^. W.headers) 
   eRes <- C.try $ liftIO $ W.postWith opts url dat
   case eRes of 
     Right res -> do
