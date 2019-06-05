@@ -156,8 +156,8 @@ deleteResource (ResourceId rid) tok = do
 -- | Get users. Default number of users is 100. Parameters max and first allow to paginate and retrieve more than 100 users.
 getUsers :: Maybe Max -> Maybe First -> Maybe Username -> Token -> Keycloak [User]
 getUsers max first username tok = do
-  let query = maybe [] (\l -> [("limit", Just $ convertString $ show l)]) max
-           ++ maybe [] (\m -> [("max", Just $ convertString $ show m)]) first
+  let query = maybe [] (\m -> [("max", Just $ convertString $ show m)]) max
+           ++ maybe [] (\f -> [("first", Just $ convertString $ show f)]) first
            ++ maybe [] (\u -> [("username", Just $ convertString u)]) username
   body <- keycloakAdminGet ("users" <> (convertString $ renderQuery True query)) tok 
   debug $ "Keycloak success: " ++ (show body) 
