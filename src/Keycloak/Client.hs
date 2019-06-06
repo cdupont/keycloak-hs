@@ -28,7 +28,6 @@ import           Network.HTTP.Types (renderQuery)
 import           Network.Wreq as W hiding (statusCode)
 import           Network.Wreq.Types
 import           System.Log.Logger
-import           Debug.Trace
 import           System.IO.Unsafe
 import           Web.JWT as JWT
 
@@ -160,7 +159,7 @@ getUsers max first username tok = do
            ++ maybe [] (\f -> [("first", Just $ convertString $ show f)]) first
            ++ maybe [] (\u -> [("username", Just $ convertString u)]) username
   body <- keycloakAdminGet ("users" <> (convertString $ renderQuery True query)) tok 
-  debug $ "Keycloak success: " ++ (show body) 
+  debug $ "Keycloak success" 
   case eitherDecode body of
     Right ret -> do
       debug $ "Keycloak success: " ++ (show ret) 
