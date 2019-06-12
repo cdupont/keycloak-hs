@@ -231,6 +231,7 @@ instance ToJSON Owner where
 -- * Resource
 
 type ResourceName = Text
+type ResourceType = Text
 
 -- | A resource Id
 newtype ResourceId = ResourceId {unResId :: Text} deriving (Show, Eq, Generic)
@@ -246,7 +247,7 @@ instance FromJSON ResourceId where
 data Resource = Resource {
      resId                 :: Maybe ResourceId,
      resName               :: ResourceName,
-     resType               :: Maybe Text,
+     resType               :: Maybe ResourceType,
      resUris               :: [Text],
      resScopes             :: [Scope],
      resOwner              :: Owner,
