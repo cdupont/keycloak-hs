@@ -149,6 +149,9 @@ deleteResource (ResourceId rid) tok = do
   keycloakDelete ("authz/protection/resource_set/" <> rid) tok2 
   return ()
 
+-- | Update a resource
+updateResource :: Resource -> Token -> Keycloak ResourceId
+updateResource r tok = createResource r tok
 
 -- * Users
 
