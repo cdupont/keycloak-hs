@@ -35,6 +35,7 @@ type Keycloak a = ReaderT KCConfig (ExceptT KCError IO) a
 data KCError = HTTPError HttpException  -- ^ Keycloak returned an HTTP error.
              | ParseError Text          -- ^ Failed when parsing the response
              | EmptyError               -- ^ Empty error to serve as a zero element for Monoid.
+             deriving (Show)
 
 -- | Configuration of Keycloak.
 data KCConfig = KCConfig {
@@ -218,7 +219,7 @@ instance ToJSON User where
 -- | A resource owner
 data Owner = Owner {
   ownId   :: Maybe Text,
-  ownName :: Username
+  ownName :: Maybe Username
   } deriving (Generic, Show)
 
 instance FromJSON Owner where
@@ -265,7 +266,8 @@ instance FromJSON Resource where
     rOwn    <- v .:  "owner"
     rOMA    <- v .:  "ownerManagedAccess"
     rAtt    <- v .:? "attributes"
-    return $ Resource rId rName rType rUris rScopes rOwn rOMA (maybe [] fromJust rAtt)
+    let att = toList $ fromJust rAtt
+    return $ Resource rId rName rType rUris rScopes rOwn rOMA (map (\(a, b) -> Attribute a b) att)
 
 instance ToJSON Resource where
   toJSON (Resource id name typ uris scopes own uma attrs) =

@@ -149,6 +149,29 @@ deleteResource (ResourceId rid) tok = do
   keycloakDelete ("authz/protection/resource_set/" <> rid) tok2 
   return ()
 
+getResource :: ResourceId -> Keycloak Resource
+getResource (ResourceId rid) = do
+  tok2 <- getClientAuthToken 
+  body <- keycloakGet ("authz/protection/resource_set/" <> rid) tok2
+  case eitherDecode body of
+    Right ret -> do
+      return ret
+    Left (err2 :: String) -> do
+      debug $ "Keycloak parse error: " ++ (show err2) 
+      throwError $ ParseError $ pack (show err2)
+
+getAllResourceIds :: Keycloak [ResourceId]
+getAllResourceIds = do
+  debug "Get all resources"
+  tok2 <- getClientAuthToken 
+  body <- keycloakGet ("authz/protection/resource_set?max=1000") tok2
+  case eitherDecode body of
+    Right ret -> do
+      return ret
+    Left (err2 :: String) -> do
+      debug $ "Keycloak parse error: " ++ (show err2) 
+      throwError $ ParseError $ pack (show err2)
+
 -- | Update a resource
 updateResource :: Resource -> Token -> Keycloak ResourceId
 updateResource r tok = createResource r tok
@@ -245,6 +268,22 @@ keycloakDelete path tok = do
   eRes <- C.try $ liftIO $ W.deleteWith opts url
   case eRes of 
     Right res -> return ()
+    Left err -> do
+      warn $ "Keycloak HTTP error: " ++ (show err)
+      throwError $ HTTPError err
+
+-- | Perform get to Keycloak on admin API
+keycloakGet :: Path -> Token -> Keycloak BL.ByteString
+keycloakGet path tok = do 
+  (KCConfig baseUrl realm _ _) <- ask
+  let opts = W.defaults & W.header "Authorization" .~ ["Bearer " <> (unToken tok)]
+  let url = (unpack $ baseUrl <> "/realms/" <> realm <> "/" <> path) 
+  info $ "Issuing KEYCLOAK GET with url: " ++ (show url) 
+  debug $ "  headers: " ++ (show $ opts ^. W.headers) 
+  eRes <- C.try $ liftIO $ W.getWith opts url
+  case eRes of 
+    Right res -> do
+      return $ fromJust $ res ^? responseBody
     Left err -> do
       warn $ "Keycloak HTTP error: " ++ (show err)
       throwError $ HTTPError err
