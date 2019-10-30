@@ -30,6 +30,7 @@ import           Network.Wreq.Types
 import           System.Log.Logger
 import           System.IO.Unsafe
 import           Web.JWT as JWT
+import           Safe
 
 -- * Permissions
 
@@ -136,8 +137,8 @@ createResource r tok = do
   debug $ convertString $ "Created resource: " ++ convertString body
   case eitherDecode body of
     Right ret -> do
-      debug $ "Keycloak success: " ++ (show ret) 
-      return $ fromJust $ resId ret
+      debug $ "Keycloak success: " ++ (show ret)
+      return $ fromJustNote "create" $ resId ret
     Left err2 -> do
       debug $ "Keycloak parse error: " ++ (show err2) 
       throwError $ ParseError $ pack (show err2)
@@ -145,9 +146,16 @@ createResource r tok = do
 -- | Delete the resource
 deleteResource :: ResourceId -> Token -> Keycloak ()
 deleteResource (ResourceId rid) tok = do
-  tok2 <- getClientAuthToken 
-  keycloakDelete ("authz/protection/resource_set/" <> rid) tok2 
+  --tok2 <- getClientAuthToken 
+  keycloakDelete ("authz/protection/resource_set/" <> rid) tok
   return ()
+
+deleteAllResources :: Token -> Keycloak ()
+deleteAllResources tok = do
+  debug "Deleting all Keycloak resources..."
+  ids <- getAllResourceIds
+  mapM_ (\rid -> deleteResource rid tok) ids
+  debug $ "Deleted " ++ (show $ L.length ids) ++ " resources from Keycloak"
 
 getResource :: ResourceId -> Keycloak Resource
 getResource (ResourceId rid) = do

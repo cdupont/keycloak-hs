@@ -1,6 +1,6 @@
 cabal-version: 1.12
 name:           keycloak-hs
-version:        0.1.1
+version:        0.2.0
 description:    Please see the README on GitHub at <https://github.com/cdupont/keycloak-hs#readme>
 homepage:       https://github.com/cdupont/keycloak-hs#readme
 bug-reports:    https://github.com/cdupont/keycloak-hs/issues
@@ -46,6 +46,7 @@ library
     , exceptions
     , jwt
     , containers
+    , safe
   default-language: Haskell2010
 
 

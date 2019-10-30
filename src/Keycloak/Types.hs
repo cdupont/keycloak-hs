@@ -266,8 +266,8 @@ instance FromJSON Resource where
     rOwn    <- v .:  "owner"
     rOMA    <- v .:  "ownerManagedAccess"
     rAtt    <- v .:? "attributes"
-    let att = toList $ fromJust rAtt
-    return $ Resource rId rName rType rUris rScopes rOwn rOMA (map (\(a, b) -> Attribute a b) att)
+    let atts = if isJust rAtt then toList $ fromJust rAtt else []
+    return $ Resource rId rName rType rUris rScopes rOwn rOMA (map (\(a, b) -> Attribute a b) atts)
 
 instance ToJSON Resource where
   toJSON (Resource id name typ uris scopes own uma attrs) =
