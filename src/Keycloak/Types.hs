@@ -137,7 +137,14 @@ instance FromJSON TokenRep where
 -- * Permission
 
 -- | Scope name
-type ScopeName = Text
+newtype ScopeName = ScopeName {unScopeName :: Text} deriving (Show, Eq, Generic, Ord)
+
+--JSON instances
+instance ToJSON ScopeName where
+  toJSON = genericToJSON (defaultOptions {unwrapUnaryRecords = True})
+
+instance FromJSON ScopeName where
+  parseJSON = genericParseJSON (defaultOptions {unwrapUnaryRecords = True})
 
 -- | Scope Id
 newtype ScopeId = ScopeId {unScopeId :: Text} deriving (Show, Eq, Generic)
@@ -163,16 +170,23 @@ instance FromJSON Scope where
 
 -- | Keycloak permission on a resource
 data Permission = Permission 
-  { rsname :: ResourceName,
-    rsid   :: ResourceId,
-    scopes :: [ScopeName]
+  { permRsid   :: Maybe ResourceId,
+    permRsname :: Maybe ResourceName,
+    permScopes :: [ScopeName] -- Non empty
   } deriving (Generic, Show, Eq)
 
 instance ToJSON Permission where
-  toJSON = genericToJSON defaultOptions {omitNothingFields = True}
+  toJSON = genericToJSON defaultOptions {fieldLabelModifier = unCapitalize . drop 4, omitNothingFields = True}
 
 instance FromJSON Permission where
-  parseJSON = genericParseJSON defaultOptions
+  parseJSON = genericParseJSON defaultOptions {fieldLabelModifier = unCapitalize . drop 4}
+
+-- | permission request
+data PermReq = PermReq 
+  { resourceId :: Maybe ResourceId,
+    scopes     :: [ScopeName]
+  } deriving (Generic, Show, Eq, Ord)
+
 
 
 -- * User
@@ -235,7 +249,7 @@ type ResourceName = Text
 type ResourceType = Text
 
 -- | A resource Id
-newtype ResourceId = ResourceId {unResId :: Text} deriving (Show, Eq, Generic)
+newtype ResourceId = ResourceId {unResId :: Text} deriving (Show, Eq, Generic, Ord)
 
 -- JSON instances
 instance ToJSON ResourceId where

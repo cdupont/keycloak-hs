@@ -14,6 +14,7 @@ import           Data.Aeson.Types hiding ((.=))
 import           Data.Text as T hiding (head, tail, map, lookup)
 import           Data.Text.Encoding
 import           Data.Maybe
+import           Data.Either
 import           Data.List as L
 import           Data.Map hiding (map, lookup)
 import           Data.String.Conversions
@@ -36,7 +37,7 @@ import           Safe
 
 -- | Checks if a scope is permitted on a resource. An HTTP Exception 403 will be thrown if not.
 checkPermission :: ResourceId -> ScopeName -> Token -> Keycloak ()
-checkPermission (ResourceId res) scope tok = do
+checkPermission (ResourceId res) (ScopeName scope) tok = do
   debug $ "Checking permissions: " ++ (show res) ++ " " ++ (show scope)
   client <- asks _clientId
   let dat = ["grant_type" := ("urn:ietf:params:oauth:grant-type:uma-ticket" :: Text),
@@ -55,14 +56,14 @@ isAuthorized res scope tok = do
     Left e -> throwError e --rethrow the error
 
 -- | Return the permissions for all resources, under the given scopes.
-getAllPermissions :: [ScopeName] -> Token -> Keycloak [Permission]
-getAllPermissions scopes tok = do
+getPermissions :: [PermReq] -> Token -> Keycloak [Permission]
+getPermissions reqs tok = do
   debug "Get all permissions"
   client <- asks _clientId
   let dat = ["grant_type" := ("urn:ietf:params:oauth:grant-type:uma-ticket" :: Text),
              "audience" := client,
-             "response_mode" := ("permissions" :: Text)]
-             <> map (\s -> "permission" := ("#" <> s)) scopes
+             "response_mode" := ("permissions" :: Text)] 
+             <> map (\p -> "permission" := p) (join $ map getPermString reqs)
   body <- keycloakPost "protocol/openid-connect/token" dat tok
   case eitherDecode body of
     Right ret -> do
@@ -71,6 +72,11 @@ getAllPermissions scopes tok = do
       debug $ "Keycloak parse error: " ++ (show err2) 
       throwError $ ParseError $ pack (show err2)
 
+
+getPermString :: PermReq -> [Text]
+getPermString (PermReq (Just (ResourceId id)) []) = [id]
+getPermString (PermReq (Just (ResourceId id)) scopes) = map (\(ScopeName s) -> (id <> "#" <> s)) scopes
+getPermString (PermReq Nothing scopes) = map (\(ScopeName s) -> ("#" <> s)) scopes
 
 -- * Tokens
 
@@ -154,8 +160,8 @@ deleteAllResources :: Token -> Keycloak ()
 deleteAllResources tok = do
   debug "Deleting all Keycloak resources..."
   ids <- getAllResourceIds
-  mapM_ (\rid -> deleteResource rid tok) ids
-  debug $ "Deleted " ++ (show $ L.length ids) ++ " resources from Keycloak"
+  res <- mapM (\rid -> try $ deleteResource rid tok) ids
+  debug $ "Deleted " ++ (show $ L.length $ rights res) ++ " resources out of " ++ (show $ L.length ids)
 
 getResource :: ResourceId -> Keycloak Resource
 getResource (ResourceId rid) = do
