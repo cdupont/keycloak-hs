@@ -15,7 +15,7 @@ Installation follows the standard approach to installing Stack-based projects.
 Tutorial
 ========
 
-In this tutorial we'll learn how to use Keycloak-HS with a [small example](./example/Main.hs).
+In this tutorial we'll learn how to use Keycloak-hs with a [small example](./example/Main.hs).
 First you should install and run Keycloak: [follow this tutorial](https://www.keycloak.org/docs/latest/getting_started/index.html).
 In Keycloak admin panel, create the following:
 - a realm named "demo"
@@ -31,7 +31,7 @@ A new "Authorization" tab should appear.
 Authorizations
 --------------
 
-Let's set up some authorization policies in order to demonstrate the capacity of Keycloak-HS.
+Let's set up some authorization policies in order to demonstrate the capacity of Keycloak-hs.
 We want to authorize our user "demo" to "view" any resource.
 
 Go in the new "Authorization" tab that appeared.
