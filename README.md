@@ -1,10 +1,8 @@
-keycloak-hs
+Keycloak-hs
 ===========
 
-keycloak-hs is a library for connecting to [Keycloak](https://www.keycloak.org/) made in Haskell.
-Keycloak allows to authenticate users and protect resources.
-
-Warning: This package is experimental and still under development.
+Keycloak-hs is an Haskell library for connecting to [Keycloak](https://www.keycloak.org/).
+Keycloak allows to authenticate users and protect API resources.
 
 Install
 =======
@@ -34,7 +32,7 @@ A new "Authorization" tab should appear.
 Authorizations
 --------------
 
-Let's set up some authorization policies in order to demonstrate the capacity os Keycloak-HS.
+Let's set up some authorization policies in order to demonstrate the capacity of Keycloak-HS.
 We want to authorize our user "demo" to "view" any resource.
 
 Go in the new "Authorization" tab that appeared.
@@ -55,6 +53,7 @@ That's it for the confguration of Keycloak. Keycloak is very complex, so you'll 
 Example
 -------
 
+The folder example contains an [exemple of usage](./example/Main.hs).
 You should first input your "client secret", that can be found in the demo client "Credentials" tab in Keycloak admin panel.
 
 Then run the example:
