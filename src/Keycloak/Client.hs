@@ -35,17 +35,6 @@ import           Safe
 
 -- * Permissions
 
--- | Checks if a scope is permitted on a resource. An HTTP Exception 403 will be thrown if not.
-checkPermission :: ResourceId -> ScopeName -> Token -> Keycloak ()
-checkPermission (ResourceId res) (ScopeName scope) tok = do
-  debug $ "Checking permissions: " ++ (show res) ++ " " ++ (show scope)
-  client <- asks _clientId
-  let dat = ["grant_type" := ("urn:ietf:params:oauth:grant-type:uma-ticket" :: Text),
-             "audience" := client,
-             "permission"  := res <> "#" <> scope]
-  keycloakPost "protocol/openid-connect/token" dat tok
-  return ()
-
 -- | Returns true id the resource is authorized under the given scope.
 isAuthorized :: ResourceId -> ScopeName -> Token -> Keycloak Bool
 isAuthorized res scope tok = do
@@ -72,11 +61,22 @@ getPermissions reqs tok = do
       debug $ "Keycloak parse error: " ++ (show err2) 
       throwError $ ParseError $ pack (show err2)
 
-
 getPermString :: PermReq -> [Text]
 getPermString (PermReq (Just (ResourceId id)) []) = [id]
 getPermString (PermReq (Just (ResourceId id)) scopes) = map (\(ScopeName s) -> (id <> "#" <> s)) scopes
 getPermString (PermReq Nothing scopes) = map (\(ScopeName s) -> ("#" <> s)) scopes
+
+-- | Checks if a scope is permitted on a resource. An HTTP Exception 403 will be thrown if not.
+checkPermission :: ResourceId -> ScopeName -> Token -> Keycloak ()
+checkPermission (ResourceId res) (ScopeName scope) tok = do
+  debug $ "Checking permissions: " ++ (show res) ++ " " ++ (show scope)
+  client <- asks _clientId
+  let dat = ["grant_type" := ("urn:ietf:params:oauth:grant-type:uma-ticket" :: Text),
+             "audience" := client,
+             "permission"  := res <> "#" <> scope]
+  keycloakPost "protocol/openid-connect/token" dat tok
+  return ()
+
 
 -- * Tokens
 
