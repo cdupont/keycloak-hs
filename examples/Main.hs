@@ -19,7 +19,7 @@ main = void $ flip runKeycloak kcConfig $ do
   
   liftIO $ putStrLn "Getting Client token"
 
-  -- * We first get a client token 
+  -- * We first get a client token, used to create resources 
   clientToken <- getClientAuthToken
 
   liftIO $ putStrLn "Creating resource"
