@@ -22,7 +22,7 @@ In Keycloak admin panel, create the following:
 - a user "demo" with password "demo"
 - a client named "demo".
 
-In the client:
+In the client "demo":
 - change "Access Type" to confidential
 - turn "Authorization Enabled" ON.
 
