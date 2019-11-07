@@ -1,4 +1,4 @@
-keycloak-hs
+Keycloak-hs
 ===========
 
 Keycloak-hs is an Haskell library for connecting to [Keycloak](https://www.keycloak.org/).
