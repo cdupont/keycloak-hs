@@ -16,7 +16,7 @@ Installation follows the standard approach to installing Stack-based projects.
 Tutorial
 ========
 
-In this tutorial we'll learn how to use Keycloak-hs with a [small example](./example/Main.hs).
+In this tutorial we'll learn how to use Keycloak-hs with a [small example](./examples/Main.hs).
 First you should install and run Keycloak: [follow this tutorial](https://www.keycloak.org/docs/latest/getting_started/index.html).
 In Keycloak admin panel, create the following:
 - a realm named "demo"
@@ -54,7 +54,7 @@ That's it for the confguration of Keycloak. Keycloak is very complex, so you'll 
 Example code
 -----------
 
-The folder example contains an [exemple of usage](./example/Main.hs).
+The folder example contains an [exemple of usage](./examples/Main.hs).
 You should first input your "client secret", that can be found in the demo client "Credentials" tab in Keycloak admin panel.
 
 Then run the example:
