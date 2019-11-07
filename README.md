@@ -17,7 +17,6 @@ Tutorial
 
 In this tutorial we'll learn how to use Keycloak-HS with a [small example](./example/Main.hs).
 First you should install and run Keycloak: [follow this tutorial](https://www.keycloak.org/docs/latest/getting_started/index.html).
-
 In Keycloak admin panel, create the following:
 - a realm named "demo"
 - a user "demo" with password "demo"
