@@ -122,7 +122,7 @@ data TokenRep = TokenRep {
   tokenType         :: Text,
   notBeforePolicy   :: Int,
   sessionState      :: Text,
-  scope             :: Text} deriving (Show, Eq)
+  tokenScope        :: Text} deriving (Show, Eq)
 
 instance FromJSON TokenRep where
   parseJSON (Object v) = TokenRep <$> v .: "access_token"
@@ -183,8 +183,8 @@ instance FromJSON Permission where
 
 -- | permission request
 data PermReq = PermReq 
-  { resourceId :: Maybe ResourceId,
-    scopes     :: [ScopeName]
+  { permReqResourceId :: Maybe ResourceId,
+    permReqScopes     :: [ScopeName]
   } deriving (Generic, Show, Eq, Ord)
 
 
