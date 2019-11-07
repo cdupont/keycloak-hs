@@ -33,24 +33,24 @@ Authorizations
 
 Let's set up some authorization policies in order to demonstrate the capacity of Keycloak-hs.
 We want to authorize our user "demo" to "view" any resource.
-
-Go in the new "Authorization" tab that appeared.
-Create a Scope named "view" in the "Authorization Scopes" tab.
+Frist go in the new "Authorization" tab that appeared.
+Create a new Scope in the "Authorization Scopes" tab:
+- name it "view".
 
 Create a new "User" policy in the "Policies" tab with the following settings:
-- Name it "Demo user have access"
+- Name it "Demo user have access".
 - Select user "demo" in the drop box.
 - Logic should be positive.
 
 Create a new scope-based permission in the "Permissions" tab:
-- Name it "View resources"
-- Select "view" in Scopes
+- Name it "View resources".
+- Select "view" in Scopes.
 - Select your previous policy "Demo user have access" in "Apply Policy".
 
 That's it for the confguration of Keycloak. Keycloak is very complex, so you'll have fun exploring all the possibilities ;)
 
-Example
--------
+Example code
+-----------
 
 The folder example contains an [exemple of usage](./example/Main.hs).
 You should first input your "client secret", that can be found in the demo client "Credentials" tab in Keycloak admin panel.
