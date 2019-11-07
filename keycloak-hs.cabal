@@ -1,6 +1,5 @@
-cabal-version: 1.12
 name:           keycloak-hs
-version:        0.2.0
+version:        1.0.0
 description:    Please see the README on GitHub at <https://github.com/cdupont/keycloak-hs#readme>
 homepage:       https://github.com/cdupont/keycloak-hs#readme
 bug-reports:    https://github.com/cdupont/keycloak-hs/issues
@@ -10,6 +9,7 @@ copyright:      2019 Corentin Dupont
 license:        BSD3
 license-file:   LICENSE
 build-type:     Simple
+cabal-version:  1.12
 extra-source-files:
     README.md
     ChangeLog.md
