@@ -34,8 +34,9 @@ Authorizations
 Let's set up some authorization policies in order to demonstrate the capacity of Keycloak-hs.
 We want to authorize our user "demo" to "view" any resource.
 Frist go in the new "Authorization" tab that appeared.
+
 Create a new Scope in the "Authorization Scopes" tab:
-- name it "view".
+- Name it "view".
 
 Create a new "User" policy in the "Policies" tab with the following settings:
 - Name it "Demo user have access".
