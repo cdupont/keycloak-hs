@@ -134,7 +134,7 @@ instance FromJSON TokenRep where
                                   <*> v .: "session_state"
                                   <*> v .: "scope"
 
--- * Permission
+-- * Permissions
 
 -- | Scope name
 newtype ScopeName = ScopeName {unScopeName :: Text} deriving (Show, Eq, Generic, Ord)
@@ -170,9 +170,9 @@ instance FromJSON Scope where
 
 -- | Keycloak permission on a resource
 data Permission = Permission 
-  { permRsid   :: Maybe ResourceId,
-    permRsname :: Maybe ResourceName,
-    permScopes :: [ScopeName] -- Non empty
+  { permRsid   :: Maybe ResourceId,   -- Resource ID, can be Nothing in case of scope-only permission request
+    permRsname :: Maybe ResourceName, -- Resrouce Name
+    permScopes :: [ScopeName]         -- Scopes that are accessible Non empty
   } deriving (Generic, Show, Eq)
 
 instance ToJSON Permission where
@@ -183,8 +183,8 @@ instance FromJSON Permission where
 
 -- | permission request
 data PermReq = PermReq 
-  { permReqResourceId :: Maybe ResourceId,
-    permReqScopes     :: [ScopeName]
+  { permReqResourceId :: Maybe ResourceId, -- Requested ressource Ids. Nothing means "All resources".
+    permReqScopes     :: [ScopeName]       -- Scopes requested. [] means "all scopes".
   } deriving (Generic, Show, Eq, Ord)
 
 

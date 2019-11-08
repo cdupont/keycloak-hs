@@ -188,7 +188,7 @@ getAllResourceIds = do
 
 -- | Update a resource
 updateResource :: Resource -> Token -> Keycloak ResourceId
-updateResource r tok = createResource r tok
+updateResource = createResource
 
 -- * Users
 
