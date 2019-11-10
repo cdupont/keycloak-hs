@@ -115,10 +115,10 @@ tokACR                 = "acr";
 
 -- | Token reply from Keycloak
 data TokenRep = TokenRep {
-  accessToken       :: JWT.JSON,
+  accessToken       :: Text,
   expiresIn         :: Int,
   refreshExpriresIn :: Int,
-  refreshToken      :: JWT.JSON,
+  refreshToken      :: Text,
   tokenType         :: Text,
   notBeforePolicy   :: Int,
   sessionState      :: Text,
@@ -137,7 +137,7 @@ instance FromJSON TokenRep where
 -- * Permissions
 
 -- | Scope name
-newtype ScopeName = ScopeName {unScopeName :: Text} deriving (Show, Eq, Generic, Ord)
+newtype ScopeName = ScopeName {unScopeName :: Text} deriving (Eq, Generic, Ord)
 
 --JSON instances
 instance ToJSON ScopeName where
@@ -145,6 +145,9 @@ instance ToJSON ScopeName where
 
 instance FromJSON ScopeName where
   parseJSON = genericParseJSON (defaultOptions {unwrapUnaryRecords = True})
+
+instance Show ScopeName where
+  show (ScopeName s) = convertString s
 
 -- | Scope Id
 newtype ScopeId = ScopeId {unScopeId :: Text} deriving (Show, Eq, Generic)
@@ -185,7 +188,11 @@ instance FromJSON Permission where
 data PermReq = PermReq 
   { permReqResourceId :: Maybe ResourceId, -- Requested ressource Ids. Nothing means "All resources".
     permReqScopes     :: [ScopeName]       -- Scopes requested. [] means "all scopes".
-  } deriving (Generic, Show, Eq, Ord)
+  } deriving (Generic, Eq, Ord)
+
+instance Show PermReq where
+  show (PermReq (Just (ResourceId res1)) scopes) = (show res1) <> " " <> (show scopes)
+  show (PermReq Nothing scopes)                  = "none " <> (show scopes)
 
 
 
