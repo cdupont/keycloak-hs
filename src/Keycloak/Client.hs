@@ -10,26 +10,20 @@ import           Control.Monad.Reader as R
 import qualified Control.Monad.Catch as C
 import           Control.Monad.Except (throwError, catchError, MonadError)
 import           Data.Aeson as JSON
-import           Data.Aeson.Types hiding ((.=))
-import           Data.Text as T hiding (head, tail, map, lookup)
-import           Data.Text.Encoding
+import           Data.Text as T hiding (head, tail, map)
 import           Data.Maybe
 import           Data.Either
 import           Data.List as L
 import           Data.Map hiding (map, lookup)
 import           Data.String.Conversions
-import           Data.Monoid hiding (First)
-import qualified Data.ByteString.Char8 as BS
 import qualified Data.ByteString.Lazy as BL
 import           Keycloak.Types
-import           Network.HTTP.Client as HC hiding (responseBody)
+import           Network.HTTP.Client as HC hiding (responseBody, path)
 import           Network.HTTP.Types.Status
-import           Network.HTTP.Types.Method 
 import           Network.HTTP.Types (renderQuery)
 import           Network.Wreq as W hiding (statusCode)
 import           Network.Wreq.Types
 import           System.Log.Logger
-import           System.IO.Unsafe
 import           Web.JWT as JWT
 import           Safe
 
@@ -48,7 +42,7 @@ isAuthorized res scope tok = do
 getPermissions :: [PermReq] -> Token -> Keycloak [Permission]
 getPermissions reqs tok = do
   debug "Get all permissions"
-  client <- asks _clientId
+  client <- asks _confClientId
   let dat = ["grant_type" := ("urn:ietf:params:oauth:grant-type:uma-ticket" :: Text),
              "audience" := client,
              "response_mode" := ("permissions" :: Text)] 
@@ -56,26 +50,26 @@ getPermissions reqs tok = do
   body <- keycloakPost "protocol/openid-connect/token" dat tok
   case eitherDecode body of
     Right ret -> do
+      debug $ "Keycloak returned perms: " ++ (show ret)
       return ret
     Left (err2 :: String) -> do
       debug $ "Keycloak parse error: " ++ (show err2) 
       throwError $ ParseError $ pack (show err2)
   where
     getPermString :: PermReq -> [Text]
-    getPermString (PermReq (Just (ResourceId id)) []) = [id]
-    getPermString (PermReq (Just (ResourceId id)) scopes) = map (\(ScopeName s) -> (id <> "#" <> s)) scopes
+    getPermString (PermReq (Just (ResourceId rid)) []) = [rid]
+    getPermString (PermReq (Just (ResourceId rid)) scopes) = map (\(ScopeName s) -> (rid <> "#" <> s)) scopes
     getPermString (PermReq Nothing scopes) = map (\(ScopeName s) -> ("#" <> s)) scopes
 
 -- | Checks if a scope is permitted on a resource. An HTTP Exception 403 will be thrown if not.
 checkPermission :: ResourceId -> ScopeName -> Token -> Keycloak ()
 checkPermission (ResourceId res) (ScopeName scope) tok = do
   debug $ "Checking permissions: " ++ (show res) ++ " " ++ (show scope)
-  client <- asks _clientId
+  client <- asks _confClientId
   let dat = ["grant_type" := ("urn:ietf:params:oauth:grant-type:uma-ticket" :: Text),
              "audience" := client,
              "permission"  := res <> "#" <> scope]
-  keycloakPost "protocol/openid-connect/token" dat tok
-  return ()
+  void $ keycloakPost "protocol/openid-connect/token" dat tok
 
 
 -- * Tokens
@@ -84,8 +78,8 @@ checkPermission (ResourceId res) (ScopeName scope) tok = do
 getUserAuthToken :: Username -> Password -> Keycloak Token
 getUserAuthToken username password = do 
   debug "Get user token"
-  client <- asks _clientId
-  secret <- asks _clientSecret
+  client <- asks _confClientId
+  secret <- asks _confClientSecret
   let dat = ["client_id" := client, 
              "client_secret" := secret,
              "grant_type" := ("password" :: Text),
@@ -105,8 +99,8 @@ getUserAuthToken username password = do
 getClientAuthToken :: Keycloak Token
 getClientAuthToken = do
   debug "Get client token"
-  client <- asks _clientId
-  secret <- asks _clientSecret
+  client <- asks _confClientId
+  secret <- asks _confClientSecret
   let dat = ["client_id" := client, 
              "client_secret" := secret,
              "grant_type" := ("client_credentials" :: Text)]
@@ -125,7 +119,7 @@ getUsername :: Token -> Username
 getUsername (Token tok) = do 
   case JWT.decode $ convertString tok of
     Just t -> case (unClaimsMap $ unregisteredClaims $ claims t) !? "preferred_username" of
-      Just (String un) -> un
+      Just (String u) -> u
       _ -> error "preferred_username not present in token" 
     Nothing -> error "Error while decoding token"
 
@@ -193,8 +187,8 @@ updateResource = createResource
 
 -- | Get users. Default number of users is 100. Parameters max and first allow to paginate and retrieve more than 100 users.
 getUsers :: Maybe Max -> Maybe First -> Maybe Username -> Token -> Keycloak [User]
-getUsers max first username tok = do
-  let query = maybe [] (\m -> [("max", Just $ convertString $ show m)]) max
+getUsers mmax first username tok = do
+  let query = maybe [] (\m -> [("max", Just $ convertString $ show m)]) mmax
            ++ maybe [] (\f -> [("first", Just $ convertString $ show f)]) first
            ++ maybe [] (\u -> [("username", Just $ convertString u)]) username
   body <- keycloakAdminGet ("users" <> (convertString $ renderQuery True query)) tok 
@@ -209,8 +203,8 @@ getUsers max first username tok = do
 
 -- | Get a single user, based on his Id
 getUser :: UserId -> Token -> Keycloak User
-getUser (UserId id) tok = do
-  body <- keycloakAdminGet ("users/" <> (convertString id)) tok 
+getUser (UserId uid) tok = do
+  body <- keycloakAdminGet ("users/" <> (convertString uid)) tok 
   debug $ "Keycloak success: " ++ (show body) 
   case eitherDecode body of
     Right ret -> do
@@ -229,8 +223,8 @@ createUser user tok = do
 
 -- | Get a single user, based on his Id
 updateUser :: UserId -> User -> Token -> Keycloak ()
-updateUser (UserId id) user tok = do
-  keycloakAdminPut ("users/" <> (convertString id)) (toJSON user) tok 
+updateUser (UserId uid) user tok = do
+  keycloakAdminPut ("users/" <> (convertString uid)) (toJSON user) tok 
   return ()
 
 
@@ -249,9 +243,9 @@ keycloakPost path dat tok = do
   case eRes of 
     Right res -> do
       return $ fromJust $ res ^? responseBody
-    Left err -> do
-      warn $ "Keycloak HTTP error: " ++ (show err)
-      throwError $ HTTPError err
+    Left er -> do
+      warn $ "Keycloak HTTP error: " ++ (show er)
+      throwError $ HTTPError er
 
 -- | Perform post to Keycloak, without token.
 keycloakPost' :: (Postable dat, Show dat) => Path -> dat -> Keycloak BL.ByteString
@@ -266,9 +260,9 @@ keycloakPost' path dat = do
   case eRes of 
     Right res -> do
       return $ fromJust $ res ^? responseBody
-    Left err -> do
-      warn $ "Keycloak HTTP error: " ++ (show err)
-      throwError $ HTTPError err
+    Left er -> do
+      warn $ "Keycloak HTTP error: " ++ (show er)
+      throwError $ HTTPError er
 
 -- | Perform delete to Keycloak.
 keycloakDelete :: Path -> Token -> Keycloak ()

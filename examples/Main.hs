@@ -9,10 +9,10 @@ import Control.Monad.IO.Class
 -- Kecyloak configuration.
 kcConfig :: KCConfig
 kcConfig = KCConfig {
-  _baseUrl       = "http://localhost:8080/auth",
-  _realm         = "demo",
-  _clientId      = "demo",
-  _clientSecret  = "4270ce82-4a8f-4d89-9ea9-d9b28c3bab3e"}
+  _confBaseUrl       = "http://localhost:8080/auth",
+  _confRealm         = "demo",
+  _confClientId      = "demo",
+  _confClientSecret  = "4270ce82-4a8f-4d89-9ea9-d9b28c3bab3e"}
 
 main :: IO ()
 main = void $ flip runKeycloak kcConfig $ do
