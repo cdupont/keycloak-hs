@@ -3,11 +3,13 @@
 {-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE DeriveAnyClass #-}
 
 module Keycloak.Types where
 
 import           Data.Aeson
 import           Data.Aeson.Casing
+import           Data.Hashable
 import           Data.Text hiding (head, tail, map, toLower, drop)
 import           Data.Text.Encoding
 import           Data.String.Conversions
@@ -135,7 +137,7 @@ instance FromJSON TokenRep where
 -- * Permissions
 
 -- | Scope name
-newtype ScopeName = ScopeName {unScopeName :: Text} deriving (Eq, Generic, Ord)
+newtype ScopeName = ScopeName {unScopeName :: Text} deriving (Eq, Generic, Ord, Hashable)
 
 --JSON instances
 instance ToJSON ScopeName where
@@ -186,7 +188,7 @@ instance FromJSON Permission where
 data PermReq = PermReq 
   { permReqResourceId :: Maybe ResourceId, -- Requested ressource Ids. Nothing means "All resources".
     permReqScopes     :: [ScopeName]       -- Scopes requested. [] means "all scopes".
-  } deriving (Generic, Eq, Ord)
+  } deriving (Generic, Eq, Ord, Hashable)
 
 instance Show PermReq where
   show (PermReq (Just (ResourceId res1)) scopes) = (show res1) <> " " <> (show scopes)
@@ -254,7 +256,7 @@ type ResourceName = Text
 type ResourceType = Text
 
 -- | A resource Id
-newtype ResourceId = ResourceId {unResId :: Text} deriving (Show, Eq, Generic, Ord)
+newtype ResourceId = ResourceId {unResId :: Text} deriving (Show, Eq, Generic, Ord, Hashable)
 
 -- JSON instances
 instance ToJSON ResourceId where
