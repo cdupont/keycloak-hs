@@ -14,7 +14,8 @@ module Keycloak (isAuthorized,
                  getUsers,
                  getUser,
                  createUser,
-                 updateUser, 
+                 updateUser,
+                 getClaims,
                  module Keycloak.Types) where
 
 import Keycloak.Client

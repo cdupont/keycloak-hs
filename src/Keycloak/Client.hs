@@ -14,7 +14,8 @@ import           Data.Text as T hiding (head, tail, map)
 import           Data.Maybe
 import           Data.Either
 import           Data.List as L
-import           Data.Map hiding (map, lookup)
+import           Data.Map as M hiding (map, lookup)
+import qualified Data.Map as M (map)
 import           Data.String.Conversions
 import qualified Data.ByteString.Lazy as BL
 import           Keycloak.Types
@@ -123,6 +124,12 @@ getUsername (Token tok) = do
       _ -> error "preferred_username not present in token" 
     Nothing -> error "Error while decoding token"
 
+-- | Extract user name from a token
+getClaims :: Token -> Map Text Value 
+getClaims (Token tok) = do 
+  case JWT.decode $ convertString tok of
+    Just t -> unClaimsMap $ unregisteredClaims $ claims t
+    Nothing -> error "Error while decoding token"
 
 -- * Resource
 
