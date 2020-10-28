@@ -1,22 +1,29 @@
 
-module Keycloak (isAuthorized,
-                 getPermissions,
-                 checkPermission,
-                 getUserAuthToken,
-                 getClientAuthToken,
-                 getUsername,
-                 createResource,
-                 deleteResource,
-                 deleteAllResources,
-                 getResource,
-                 getAllResourceIds,
-                 updateResource,
-                 getUsers,
-                 getUser,
-                 createUser,
-                 updateUser,
-                 getClaims,
-                 module Keycloak.Types) where
+module Keycloak (
+  -- | Tokens
+  getJWKs,
+  getJWT,
+  getClientJWT,
+  verifyJWT,
+  getClaimsUser,
+  isAuthorized,
+  -- | Authorizations
+  getPermissions,
+  checkPermission,
+  createResource,
+  deleteResource,
+  deleteAllResources,
+  getResource,
+  getAllResourceIds,
+  updateResource,
+  -- | Users
+  getUsers,
+  getUser,
+  createUser,
+  updateUser,
+  module Keycloak.Types) where
 
-import Keycloak.Client
+import Keycloak.Tokens
+import Keycloak.Users
+import Keycloak.Authorizations
 import Keycloak.Types

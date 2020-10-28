@@ -18,10 +18,26 @@ Tutorial
 
 In this tutorial we'll learn how to use Keycloak-hs with a [small example](./examples/Main.hs).
 First you should install and run Keycloak: [follow this tutorial](https://www.keycloak.org/docs/latest/getting_started/index.html).
+
+Authentication
+--------------
+
+Authentication with Keycloak is based on [JWTs](https://jwt.io/).
+
 In Keycloak admin panel, create the following:
 - a realm named "demo"
-- a user "demo" with password "demo"
 - a client named "demo".
+- a user "demo" with password "demo"
+
+In the user, add an attribute, such as "phone".
+In order for this attribute to appear in the token claims, we should also add a client "mapper".
+In the client "demo", click on "Mappers"/"add mappers".
+Fill the name="demo", Mapper Type=User attribute, Token Claim Name="demo", Claim JSON Type=String, and save.
+
+At this point, you should be able to retrieve tokens from Keycloak, verify them using this library, and extract a User from the tokens.
+
+Authorizations
+--------------
 
 In the client "demo":
 - change "Access Type" to confidential
@@ -29,12 +45,10 @@ In the client "demo":
 
 A new "Authorization" tab should appear.
 
-Authorizations
---------------
-
 Let's set up some authorization policies in order to demonstrate the capacity of Keycloak-hs.
 We want to authorize our user "demo" to "view" any resource.
-Frist go in the new "Authorization" tab that appeared.
+First go in the new "Authorization" tab that appeared.
+Flip ON "Remote Resource Management".
 
 Create a new Scope in the "Authorization Scopes" tab:
 - Name it "view".

@@ -1,7 +1,5 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE ViewPatterns #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE DeriveAnyClass #-}
 
@@ -11,19 +9,19 @@ import           Data.Aeson
 import           Data.Aeson.Casing
 import           Data.Hashable
 import           Data.Text hiding (head, tail, map, toLower, drop)
-import           Data.Text.Encoding
 import           Data.String.Conversions
 import           Data.Maybe
 import           Data.Map hiding (drop, map)
-import qualified Data.ByteString as BS
-import qualified Data.Word8 as W8 (isSpace, toLower)
+import qualified Data.HashMap.Strict as HM
 import           Data.Char
 import           Control.Monad.Except (ExceptT, runExceptT)
 import           Control.Monad.Reader as R
 import           Control.Lens hiding ((.=))
 import           GHC.Generics (Generic)
-import           Web.HttpApiData (FromHttpApiData(..), ToHttpApiData(..))
 import           Network.HTTP.Client as HC hiding (responseBody)
+import           Crypto.JWT as JWT
+
+type JWT = SignedJWT
 
 -- * Keycloak Monad
 
@@ -33,8 +31,18 @@ type Keycloak a = ReaderT KCConfig (ExceptT KCError IO) a
 -- | Contains HTTP errors and parse errors.
 data KCError = HTTPError HttpException  -- ^ Keycloak returned an HTTP error.
              | ParseError Text          -- ^ Failed when parsing the response
+             | JWTError JWTError        -- ^ Failed to decode the token
              | EmptyError               -- ^ Empty error to serve as a zero element for Monoid.
              deriving (Show)
+
+instance AsJWTError KCError where
+  _JWTError = prism' JWTError up where
+    up (JWTError e) = Just e
+    up _ = Nothing
+
+instance AsError KCError where
+  _Error = _JWSError
+
 
 -- | Configuration of Keycloak.
 data KCConfig = KCConfig {
@@ -59,58 +67,6 @@ type Path = Text
 
 
 -- * Token
-
--- | Wrapper for tokens.
-newtype Token = Token {unToken :: BS.ByteString} deriving (Eq, Show, Generic)
-
-instance ToJSON Token where
-  toJSON (Token t) = String $ convertString t
-
--- | parser for Authorization header
-instance FromHttpApiData Token where
-  parseQueryParam = parseHeader . encodeUtf8
-  parseHeader (extractBearerAuth -> Just tok) = Right $ Token tok
-  parseHeader _ = Left "cannot extract auth Bearer"
-
-extractBearerAuth :: BS.ByteString -> Maybe BS.ByteString
-extractBearerAuth bs =
-    let (x, y) = BS.break W8.isSpace bs
-    in if BS.map W8.toLower x == "bearer"
-        then Just $ BS.dropWhile W8.isSpace y
-        else Nothing
-
--- | Create Authorization header
-instance ToHttpApiData Token where
-  toQueryParam (Token token) = "Bearer " <> (decodeUtf8 token)
- 
--- | Keycloak Token additional claims
-tokNonce, tokAuthTime, tokSessionState, tokAtHash, tokCHash, tokName, tokGivenName, tokFamilyName, tokMiddleName, tokNickName, tokPreferredUsername, tokProfile, tokPicture, tokWebsite, tokEmail, tokEmailVerified, tokGender, tokBirthdate, tokZoneinfo, tokLocale, tokPhoneNumber, tokPhoneNumberVerified,tokAddress, tokUpdateAt, tokClaimsLocales, tokACR :: Text
-tokNonce               = "nonce";
-tokAuthTime            = "auth_time";
-tokSessionState        = "session_state";
-tokAtHash              = "at_hash";
-tokCHash               = "c_hash";
-tokName                = "name";
-tokGivenName           = "given_name";
-tokFamilyName          = "family_name";
-tokMiddleName          = "middle_name";
-tokNickName            = "nickname";
-tokPreferredUsername   = "preferred_username";
-tokProfile             = "profile";
-tokPicture             = "picture";
-tokWebsite             = "website";
-tokEmail               = "email";
-tokEmailVerified       = "email_verified";
-tokGender              = "gender";
-tokBirthdate           = "birthdate";
-tokZoneinfo            = "zoneinfo";
-tokLocale              = "locale";
-tokPhoneNumber         = "phone_number";
-tokPhoneNumberVerified = "phone_number_verified";
-tokAddress             = "address";
-tokUpdateAt            = "updated_at";
-tokClaimsLocales       = "claims_locales";
-tokACR                 = "acr";
 
 -- | Token reply from Keycloak
 data TokenRep = TokenRep {
@@ -215,12 +171,12 @@ instance FromJSON UserId where
 
 -- | User 
 data User = User
-  { userId        :: Maybe UserId   -- ^ The unique user ID 
-  , userUsername  :: Username       -- ^ Username
-  , userFirstName :: Maybe Text     -- ^ First name
-  , userLastName  :: Maybe Text     -- ^ Last name
-  , userEmail     :: Maybe Text     -- ^ Email
-  , userAttributes :: Maybe (Map Text [Text]) 
+  { userId         :: UserId         -- ^ The unique user ID 
+  , userUsername   :: Username       -- ^ Username
+  , userFirstName  :: Maybe Text     -- ^ First name
+  , userLastName   :: Maybe Text     -- ^ Last name
+  , userEmail      :: Maybe Text     -- ^ Email
+  , userAttributes :: Maybe (HM.HashMap Text Value)
   } deriving (Show, Eq, Generic)
 
 unCapitalize :: String -> String
