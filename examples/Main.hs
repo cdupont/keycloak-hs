@@ -18,8 +18,10 @@ kcConfig = KCConfig {
 
 main :: IO ()
 main = do
+  -- Keycloak-hs has logging, you can enable it for debugging.
   updateGlobalLogger rootLoggerName (setLevel DEBUG)
 
+  -- We run all the commands in the 'Keycloak' Monad.
   void $ flip runKeycloak kcConfig $ do
     liftIO $ putStrLn "Starting tests..."
   
@@ -71,9 +73,12 @@ main = do
     liftIO $ putStrLn $ "User 'demo' can access resource 'demo': " ++ (show isAuth)
   
     -- We can also retrieve all the permissions for our user.
-    perms <- getPermissions [PermReq Nothing [ScopeName "view"]] userToken
+    --perms <- getPermissions [PermReq Nothing [ScopeName "view"]] userToken
   
-    liftIO $ putStrLn $ "All permissions: " ++ (show perms)
+    --liftIO $ putStrLn $ "All permissions: " ++ (show perms)
   
     --resources can be deleted
     --deleteResource resId clientToken
+
+    users <- getUsers Nothing Nothing Nothing jwt
+    liftIO $ putStrLn $ "All Users: " ++ (show users)

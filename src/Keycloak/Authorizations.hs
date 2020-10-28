@@ -1,6 +1,32 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
+{-|
+This module helps you manage resources authorization with Keycloak.
+
+In Keycloak, in the client, activate "Authorization Enabled" and set "Valid Redirect URIs" as "*".
+You then need to create your scopes, policies and permissions in the authorization tab.
+If you are unsure, set the "Policy Enforcement Mode" as permissive, so that a positive permission will be given with resources without policy.
+
+The example below shows how to retrieve a token from Keycloak, and then retrieve the permissions of a user on a specific resource.
+
+@
+-- Let's get a token for a specific user login/password
+userToken <- getJWT "demo" "demo"
+
+-- Can I access this resource?
+isAuth <- isAuthorized resId (ScopeName "view") userToken
+
+liftIO $ putStrLn $ "User 'demo' can access resource 'demo': " ++ (show isAuth)
+
+-- We can also retrieve all the permissions for our user.
+perms <- getPermissions [PermReq Nothing [ScopeName "view"]] userToken
+
+liftIO $ putStrLn $ "All permissions: " ++ (show perms)
+@
+
+-}
+
 module Keycloak.Authorizations where
 
 import           Control.Monad.Reader as R

@@ -2,7 +2,7 @@ Keycloak-hs
 ===========
 
 Keycloak-hs is an Haskell library for connecting to [Keycloak](https://www.keycloak.org/).
-Keycloak allows to authenticate users and protect API resources.
+Keycloak allows to authenticate and manage users and to protect API resources.
 This library allows you to retrieve and analyse Keycloak authentication tokens, and to protect resources in your API.
 
 Install

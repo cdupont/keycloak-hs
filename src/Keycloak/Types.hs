@@ -21,11 +21,14 @@ import           GHC.Generics (Generic)
 import           Network.HTTP.Client as HC hiding (responseBody)
 import           Crypto.JWT as JWT
 
+-- | Our Json Web Token as returned by Keycloak
 type JWT = SignedJWT
 
 -- * Keycloak Monad
 
 -- | Keycloak Monad stack: a simple Reader monad containing the config, and an ExceptT to handle HTTPErrors and parse errors.
+-- You can extract the value using 'runKeycloak'.
+-- Example: @keys <- runKeycloak getJWKs defaultKCConfig@
 type Keycloak a = ReaderT KCConfig (ExceptT KCError IO) a
 
 -- | Contains HTTP errors and parse errors.
@@ -46,10 +49,11 @@ instance AsError KCError where
 
 -- | Configuration of Keycloak.
 data KCConfig = KCConfig {
-  _confBaseUrl       :: Text,
-  _confRealm         :: Text,
-  _confClientId      :: Text,
-  _confClientSecret  :: Text} deriving (Eq, Show)
+  _confBaseUrl       :: Text,  -- ^ Base url where Keycloak resides
+  _confRealm         :: Text,  -- ^ realm to use
+  _confClientId      :: Text,  -- ^ client id
+  _confClientSecret  :: Text}  -- ^ client secret, found in Client/Credentials tab
+  deriving (Eq, Show)
 
 -- | Default configuration
 defaultKCConfig :: KCConfig
@@ -92,7 +96,8 @@ instance FromJSON TokenRep where
 
 -- * Permissions
 
--- | Scope name
+-- | Scope name, such as "houses:view"
+-- You need to create the scopes in Client/Authorization panel/Authorization scopes tab
 newtype ScopeName = ScopeName {unScopeName :: Text} deriving (Eq, Generic, Ord, Hashable)
 
 --JSON instances
@@ -127,11 +132,26 @@ instance ToJSON Scope where
 instance FromJSON Scope where
   parseJSON = genericParseJSON defaultOptions {fieldLabelModifier = unCapitalize . drop 5}
 
+-- | permission request
+-- You can perform a request on a specific resourse, or on all resources.
+-- You can request permission on multiple scopes at once.
+-- 
+data PermReq = PermReq 
+  { permReqResourceId :: Maybe ResourceId, -- ^ Requested ressource Ids. Nothing means "All resources".
+    permReqScopes     :: [ScopeName]       -- ^ Scopes requested. [] means "all scopes".
+  } deriving (Generic, Eq, Ord, Hashable)
+
+instance Show PermReq where
+  show (PermReq (Just (ResourceId res1)) scopes) = (show res1) <> " " <> (show scopes)
+  show (PermReq Nothing scopes)                  = "none " <> (show scopes)
+
 -- | Keycloak permission on a resource
+-- Returned by Keycloak after a permission request is made.
+-- 
 data Permission = Permission 
-  { permRsid   :: Maybe ResourceId,   -- Resource ID, can be Nothing in case of scope-only permission request
-    permRsname :: Maybe ResourceName, -- Resrouce Name
-    permScopes :: [ScopeName]         -- Scopes that are accessible Non empty
+  { permRsid   :: Maybe ResourceId,   -- ^ Resource ID, can be Nothing in case of scope-only permission request
+    permRsname :: Maybe ResourceName, -- ^ Resource Name, can be Nothing in case of scope-only permission request
+    permScopes :: [ScopeName]         -- ^ Scopes that are accessible (Non empty)
   } deriving (Generic, Show, Eq)
 
 instance ToJSON Permission where
@@ -139,16 +159,6 @@ instance ToJSON Permission where
 
 instance FromJSON Permission where
   parseJSON = genericParseJSON defaultOptions {fieldLabelModifier = unCapitalize . drop 4}
-
--- | permission request
-data PermReq = PermReq 
-  { permReqResourceId :: Maybe ResourceId, -- Requested ressource Ids. Nothing means "All resources".
-    permReqScopes     :: [ScopeName]       -- Scopes requested. [] means "all scopes".
-  } deriving (Generic, Eq, Ord, Hashable)
-
-instance Show PermReq where
-  show (PermReq (Just (ResourceId res1)) scopes) = (show res1) <> " " <> (show scopes)
-  show (PermReq Nothing scopes)                  = "none " <> (show scopes)
 
 
 
@@ -222,15 +232,17 @@ instance FromJSON ResourceId where
   parseJSON = genericParseJSON (defaultOptions {unwrapUnaryRecords = True})
 
 -- | A complete resource
+-- Resources are created in Keycloak in Client/
+-- You can create resources in Client/Authorization panel/Resources scopes tab
 data Resource = Resource {
-     resId                 :: Maybe ResourceId,
-     resName               :: ResourceName,
-     resType               :: Maybe ResourceType,
-     resUris               :: [Text],
-     resScopes             :: [Scope],
-     resOwner              :: Owner,
-     resOwnerManagedAccess :: Bool,
-     resAttributes         :: [Attribute]
+     resId                 :: Maybe ResourceId,   -- ^ the Keycloak resource ID
+     resName               :: ResourceName,       -- ^ the Keycloak resource name
+     resType               :: Maybe ResourceType, -- ^ Optional resource type
+     resUris               :: [Text],             -- ^ Optional resource URI
+     resScopes             :: [Scope],            -- ^ All the possible scopes for that resource
+     resOwner              :: Owner,              -- ^ The Owner or the resource
+     resOwnerManagedAccess :: Bool,               -- ^ Whether the owner can manage his own resources (e.g. resource sharing with others)
+     resAttributes         :: [Attribute]         -- ^ Resource attributes
   } deriving (Generic, Show)
 
 instance FromJSON Resource where

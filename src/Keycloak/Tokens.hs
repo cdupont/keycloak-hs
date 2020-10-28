@@ -3,6 +3,50 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE ViewPatterns #-}
 
+{-|
+Authentication with Keycloak is based on [JWTs](https://jwt.io/).
+This module helps you retrieve tokens from Keycloak, and use them to authenticate your users.
+In Keycloak, you need to configure a realm, a client and a user.
+
+Users can also have additional attributes.
+To see them in the Token, you need to add "protocol mappers" in the Client, that will copy the User attribute in the Token.
+
+The example below retrieves a User token using Login/password, verifies it, and extract all the user details from it.
+
+@
+-- Kecyloak configuration.
+kcConfig :: KCConfig
+kcConfig = KCConfig {
+  _confBaseUrl       = "http://localhost:8080/auth",
+  _confRealm         = "demo",
+  _confClientId      = "demo",
+  _confClientSecret  = "3d792576-4e56-4c58-991a-49074e6a92ea"}
+
+main :: IO ()
+main = do
+
+  void $ flip runKeycloak kcConfig $ do
+    liftIO $ putStrLn "Starting tests..."
+  
+    -- JWKs are public keys delivered by Keycloak to check the integrity of any JWT (user tokens).
+    -- an application may retrieve these keys once at startup and keep them.
+    jwks <- getJWKs
+    liftIO $ putStrLn $ "Got JWKs: \n" ++ (show jwks) ++ "\n\n"
+  
+    -- Get a JWT from Keycloak. A JWT can then be used to authenticate yourself with an application.
+    jwt <- getJWT "demo" "demo" 
+    liftIO $ putStrLn $ "Got JWT: \n" ++ (show jwt) ++ "\n\n"
+  
+    -- Retrieve the claims contained in the JWT.
+    claims <- verifyJWT (head jwks) jwt
+    liftIO $ putStrLn $ "Claims decoded from Token: \n" ++ (show claims) ++ "\n\n"
+    
+    -- get the user from the claim
+    let user = getClaimsUser claims
+    liftIO $ putStrLn $ "User decoded from claims: \n" ++ (show user) ++ "\n\n"
+@
+-}
+
 module Keycloak.Tokens where
 
 import           Control.Lens hiding ((.=))
@@ -35,7 +79,8 @@ getJWKs = do
   return jwks
 
 
--- | Retrieve the user's token. This token can be used for every other Keycloak calls.
+-- | Retrieve the user's token. This token can be used to authenticate the user.
+-- This token can be also used for every other Keycloak calls.
 getJWT :: Username -> Password -> Keycloak JWT
 getJWT username password = do 
   debug "Get user token"

@@ -3,6 +3,25 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE ViewPatterns #-}
 
+{-|
+This module helps you manage users in Keycloak.
+You can create, read and update users.
+To activate this, you need to give the role "manage users" to your user in Keycloak.
+For this, go in your user, select the "Role mappings" tab.
+Then in "client Roles", select "realm management" and assign the role "manage-users".
+
+Example usage:
+
+@
+-- Get a JWT from Keycloak. A JWT can then be used to authenticate yourself.
+jwt <- getJWT "demo" "demo" 
+
+users <- getUsers Nothing Nothing Nothing jwt
+liftIO $ putStrLn $ "All Users: " ++ (show users)
+@
+
+-}
+
 module Keycloak.Users where
 
 import           Control.Monad.Except (throwError)
