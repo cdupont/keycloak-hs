@@ -171,7 +171,7 @@ instance FromJSON UserId where
 
 -- | User 
 data User = User
-  { userId         :: UserId         -- ^ The unique user ID 
+  { userId         :: Maybe UserId   -- ^ The unique user ID 
   , userUsername   :: Username       -- ^ Username
   , userFirstName  :: Maybe Text     -- ^ First name
   , userLastName   :: Maybe Text     -- ^ Last name
