@@ -1,4 +1,3 @@
-
 module Keycloak (
   -- | Tokens
   getJWKs,
