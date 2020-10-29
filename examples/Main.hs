@@ -8,34 +8,24 @@ import Control.Monad.IO.Class
 import System.Log.Logger
 
 
--- Kecyloak configuration.
-kcConfig :: KCConfig
-kcConfig = KCConfig {
-  _confBaseUrl       = "http://localhost:8080/auth",
-  _confRealm         = "demo",
-  _confClientId      = "demo",
-  _confClientSecret  = "3d792576-4e56-4c58-991a-49074e6a92ea"}
-
 main :: IO ()
 main = do
   -- Keycloak-hs has logging, you can enable it for debugging.
   updateGlobalLogger rootLoggerName (setLevel DEBUG)
 
+  -- Read the Keycloak config file. You can retrieve this file in your Client/Installation tab (JSON format).
+  kcConfig <- configureKeycloak "keycloak.json"
+  putStrLn $ "Loaded Keycloak config: " ++ (show kcConfig)
   -- We run all the commands in the 'Keycloak' Monad.
   void $ flip runKeycloak kcConfig $ do
     liftIO $ putStrLn "Starting tests..."
-  
-    -- JWKs are public keys delivered by Keycloak to check the integrity of any JWT (user tokens).
-    -- an application may retrieve these keys at startup and keep them.
-    jwks <- getJWKs
-    liftIO $ putStrLn $ "Got JWKs: \n" ++ (show jwks) ++ "\n\n"
   
     -- Get a JWT from Keycloak. A JWT can then be used to authentify yourself with an application.
     jwt <- getJWT "demo" "demo" 
     liftIO $ putStrLn $ "Got JWT: \n" ++ (show jwt) ++ "\n\n"
   
     -- Retrieve the claims contained in the JWT.
-    claims <- verifyJWT (head jwks) jwt
+    claims <- verifyJWT jwt
     liftIO $ putStrLn $ "Claims decoded from Token: \n" ++ (show claims) ++ "\n\n"
     
     -- get the user from the claim

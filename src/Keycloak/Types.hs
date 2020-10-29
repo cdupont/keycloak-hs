@@ -47,21 +47,49 @@ instance AsError KCError where
   _Error = _JWSError
 
 
--- | Configuration of Keycloak.
 data KCConfig = KCConfig {
-  _confBaseUrl       :: Text,  -- ^ Base url where Keycloak resides
-  _confRealm         :: Text,  -- ^ realm to use
-  _confClientId      :: Text,  -- ^ client id
-  _confClientSecret  :: Text}  -- ^ client secret, found in Client/Credentials tab
-  deriving (Eq, Show)
+  _confAdapterConfig :: AdapterConfig,
+  _confJWKs :: [JWK]}
+  deriving (Eq, Show, Generic)
+
+type Realm = Text
+type ClientId = Text
+type ServerURL = Text
+
+-- | Configuration of Keycloak.
+data AdapterConfig = AdapterConfig {
+  _confRealm         :: Realm,              -- ^ realm to use
+  _confAuthServerUrl :: ServerURL,          -- ^ Base url where Keycloak resides
+  _confResource      :: ClientId,           -- ^ client id
+  _confCredentials   :: ClientCredentials}  -- ^ client secret, found in Client/Credentials tab
+  deriving (Eq, Show, Generic)
+
+instance ToJSON AdapterConfig where
+  toJSON = genericToJSON $ trainDrop 5
+
+instance FromJSON AdapterConfig where
+  parseJSON = genericParseJSON $ trainDrop 5
+
+data ClientCredentials = ClientCredentials {
+  _confSecret :: Text}
+  deriving (Eq, Show, Generic)
+
+instance ToJSON ClientCredentials where
+  toJSON = genericToJSON $ trainDrop 5
+
+instance FromJSON ClientCredentials where
+  parseJSON = genericParseJSON $ trainDrop 5
+
+trainDrop :: Int -> Options
+trainDrop n = defaultOptions {fieldLabelModifier = trainCase . drop n, omitNothingFields = True}
 
 -- | Default configuration
-defaultKCConfig :: KCConfig
-defaultKCConfig = KCConfig {
-  _confBaseUrl       = "http://localhost:8080/auth",
+defaultAdapterConfig :: AdapterConfig
+defaultAdapterConfig = AdapterConfig {
   _confRealm         = "waziup",
-  _confClientId      = "api-server",
-  _confClientSecret  = "4e9dcb80-efcd-484c-b3d7-1e95a0096ac0"}
+  _confAuthServerUrl = "http://localhost:8080/auth",
+  _confResource      = "api-server",
+  _confCredentials   = ClientCredentials "4e9dcb80-efcd-484c-b3d7-1e95a0096ac0"}
 
 -- | Run a Keycloak monad within IO.
 runKeycloak :: Keycloak a -> KCConfig -> IO (Either KCError a)
@@ -285,3 +313,5 @@ instance ToJSON Attribute where
 
 
 makeLenses ''KCConfig
+makeLenses ''ClientCredentials
+makeLenses ''AdapterConfig

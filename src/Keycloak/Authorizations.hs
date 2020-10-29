@@ -1,31 +1,29 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
-{-|
-This module helps you manage resources authorization with Keycloak.
-
-In Keycloak, in the client, activate "Authorization Enabled" and set "Valid Redirect URIs" as "*".
-You then need to create your scopes, policies and permissions in the authorization tab.
-If you are unsure, set the "Policy Enforcement Mode" as permissive, so that a positive permission will be given with resources without policy.
-
-The example below shows how to retrieve a token from Keycloak, and then retrieve the permissions of a user on a specific resource.
-
-@
--- Let's get a token for a specific user login/password
-userToken <- getJWT "demo" "demo"
-
--- Can I access this resource?
-isAuth <- isAuthorized resId (ScopeName "view") userToken
-
-liftIO $ putStrLn $ "User 'demo' can access resource 'demo': " ++ (show isAuth)
-
--- We can also retrieve all the permissions for our user.
-perms <- getPermissions [PermReq Nothing [ScopeName "view"]] userToken
-
-liftIO $ putStrLn $ "All permissions: " ++ (show perms)
-@
-
--}
+-- |
+-- This module helps you manage resources authorization with Keycloak.
+-- 
+-- In Keycloak, in the client, activate "Authorization Enabled" and set "Valid Redirect URIs" as "*".
+-- You then need to create your scopes, policies and permissions in the authorization tab.
+-- If you are unsure, set the "Policy Enforcement Mode" as permissive, so that a positive permission will be given with resources without policy.
+-- 
+-- The example below shows how to retrieve a token from Keycloak, and then retrieve the permissions of a user on a specific resource.
+-- 
+-- @
+-- -- Let's get a token for a specific user login/password
+-- userToken <- getJWT "demo" "demo"
+-- 
+-- -- Can I access this resource?
+-- isAuth <- isAuthorized resId (ScopeName "view") userToken
+-- 
+-- liftIO $ putStrLn $ "User 'demo' can access resource 'demo': " ++ (show isAuth)
+-- 
+-- -- We can also retrieve all the permissions for our user.
+-- perms <- getPermissions [PermReq Nothing [ScopeName "view"]] userToken
+-- 
+-- liftIO $ putStrLn $ "All permissions: " ++ (show perms)
+-- @
 
 module Keycloak.Authorizations where
 
@@ -39,6 +37,7 @@ import           Data.String.Conversions
 import           Keycloak.Types
 import           Keycloak.Tokens
 import           Keycloak.Utils as U
+import           Control.Lens
 import           Network.HTTP.Types.Status
 import           Network.Wreq as W hiding (statusCode)
 import           Safe
@@ -58,7 +57,7 @@ isAuthorized res scope tok = do
 getPermissions :: [PermReq] -> JWT -> Keycloak [Permission]
 getPermissions reqs tok = do
   debug "Get all permissions"
-  client <- asks _confClientId
+  client <- view $ confAdapterConfig.confResource
   let dat = ["grant_type" := ("urn:ietf:params:oauth:grant-type:uma-ticket" :: Text),
              "audience" := client,
              "response_mode" := ("permissions" :: Text)] 
@@ -81,7 +80,7 @@ getPermissions reqs tok = do
 checkPermission :: ResourceId -> ScopeName -> JWT -> Keycloak ()
 checkPermission (ResourceId res) (ScopeName scope) tok = do
   debug $ "Checking permissions: " ++ (show res) ++ " " ++ (show scope)
-  client <- asks _confClientId
+  client <- view $ confAdapterConfig.confResource
   let dat = ["grant_type" := ("urn:ietf:params:oauth:grant-type:uma-ticket" :: Text),
              "audience" := client,
              "permission"  := res <> "#" <> scope]

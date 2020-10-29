@@ -16,28 +16,42 @@ Installation follows the standard approach to installing Stack-based projects.
 Tutorial
 ========
 
-In this tutorial we'll learn how to use Keycloak-hs with a [small example](./examples/Main.hs).
+In this tutorial, we'll configure Keycloak for running our [small example](./examples/Main.hs).
 First you should install and run Keycloak: [follow this tutorial](https://www.keycloak.org/docs/latest/getting_started/index.html).
+
+The example is compiled and run this way:
+```
+$ stack install
+$ example
+```
+
+But before running it, we should create a Client in Keycloak and retrieve the adapter config file.
+In Keycloak admin panel, create the following:
+- a realm named "demo"
+- a client named "demo".
+
+This file is now downloadable in your Client/Installation tab (JSON format).
+Place it in this folder.
 
 Authentication
 --------------
 
 Authentication with Keycloak is based on [JWTs](https://jwt.io/).
 
-In Keycloak admin panel, create the following:
-- a realm named "demo"
-- a client named "demo".
-- a user "demo" with password "demo"
+In Keycloak, create a user named "demo" with password "demo". 
+Make sure that your user is enable, email verified, and the password is not temporary.
+At this point, you should be able to retrieve tokens from Keycloak, verify them using this library, and extract a User from the tokens.
 
-In the user, add an attribute, such as "phone".
+Additionaly, you can add attributes to your user. In Keycloak UI, go in the User Attributes tab and add an attribute, such as "phone".
 In order for this attribute to appear in the token claims, we should also add a client "mapper".
 In the client "demo", click on "Mappers"/"add mappers".
-Fill the name="demo", Mapper Type=User attribute, Token Claim Name="demo", Claim JSON Type=String, and save.
-
-At this point, you should be able to retrieve tokens from Keycloak, verify them using this library, and extract a User from the tokens.
+Fill the name="phone", Mapper Type=User attribute, Token Claim Name="phone", Claim JSON Type=String, and save.
 
 Authorizations
 --------------
+
+Keycloak can also manage your resources and related access policies.
+The idea is that, each time a user makes a request on your application, you will ask Keycloak "Can he really do that??".
 
 In the client "demo":
 - change "Access Type" to confidential
@@ -63,23 +77,8 @@ Create a new scope-based permission in the "Permissions" tab:
 - Select "view" in Scopes.
 - Select your previous policy "Demo user have access" in "Apply Policy".
 
-That's it for the confguration of Keycloak. Keycloak is very complex, so you'll have fun exploring all the possibilities ;)
-
-Example code
------------
-
-The folder example contains an [exemple of usage](./examples/Main.hs).
-You should first input your "client secret", that can be found in the demo client "Credentials" tab in Keycloak admin panel.
-
-Then run the example:
-```
-stack run example
-```
-
-The example first create a "client" token, necessary to create a resource in Keycloak.
-It then create a Resourse, with a name, an optional type, URIs, scopes, owner and attributes.
-
-We can then check if our user can access this resource, according to policies.
-Finally, the example shows how to retrieve all permissions for a user.
+That's it for the confguration of Keycloak.
+You are now able to play with the "Authorization" part of the example.
+Keycloak is very complex, so you'll have fun exploring all the possibilities ;)
 
 Enjoy!
