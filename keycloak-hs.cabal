@@ -1,6 +1,6 @@
 cabal-version: 1.12
 name: keycloak-hs
-version: 2.1.0
+version: 3.0.0
 license: BSD3
 license-file: LICENSE
 copyright: 2019 Corentin Dupont
