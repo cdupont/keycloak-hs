@@ -2,6 +2,10 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE DerivingStrategies #-}
+{-# LANGUAGE DerivingVia #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 module Keycloak.Types where
 
@@ -16,6 +20,7 @@ import qualified Data.HashMap.Strict as HM
 import           Data.Char
 import           Control.Monad.Except (ExceptT, runExceptT)
 import           Control.Monad.Reader as R
+import           Control.Monad.Time (MonadTime)
 import           Control.Lens hiding ((.=))
 import           GHC.Generics (Generic)
 import           Network.HTTP.Client as HC hiding (responseBody)
@@ -29,14 +34,20 @@ type JWT = SignedJWT
 -- | Keycloak Monad stack: a simple Reader monad containing the config, and an ExceptT to handle HTTPErrors and parse errors.
 -- You can extract the value using 'runKeycloak'.
 -- Example: @keys <- runKeycloak getJWKs defaultKCConfig@
-type Keycloak a = ReaderT KCConfig (ExceptT KCError IO) a
+type Keycloak a = KeycloakT IO a
+
+newtype KeycloakT m a = KeycloakT { unKeycloakT :: ReaderT KCConfig (ExceptT KCError m) a }
+    deriving newtype (Monad, Applicative, Functor, MonadIO, MonadTime)
+
+instance MonadTrans KeycloakT where
+    lift = KeycloakT . lift . lift
 
 -- | Contains HTTP errors and parse errors.
 data KCError = HTTPError HttpException  -- ^ Keycloak returned an HTTP error.
              | ParseError Text          -- ^ Failed when parsing the response
              | JWTError JWTError        -- ^ Failed to decode the token
              | EmptyError               -- ^ Empty error to serve as a zero element for Monoid.
-             deriving (Show)
+             deriving stock (Show)
 
 instance AsJWTError KCError where
   _JWTError = prism' JWTError up where
@@ -62,7 +73,7 @@ data AdapterConfig = AdapterConfig {
   _confAuthServerUrl :: ServerURL,          -- ^ Base url where Keycloak resides
   _confResource      :: ClientId,           -- ^ client id
   _confCredentials   :: ClientCredentials}  -- ^ client secret, found in Client/Credentials tab
-  deriving (Eq, Show, Generic)
+  deriving stock (Eq, Show, Generic)
 
 instance ToJSON AdapterConfig where
   toJSON = genericToJSON $ trainDrop 5
@@ -72,7 +83,7 @@ instance FromJSON AdapterConfig where
 
 data ClientCredentials = ClientCredentials {
   _confSecret :: Text}
-  deriving (Eq, Show, Generic)
+  deriving stock (Eq, Show, Generic)
 
 instance ToJSON ClientCredentials where
   toJSON = genericToJSON $ trainDrop 5
@@ -92,8 +103,8 @@ defaultAdapterConfig = AdapterConfig {
   _confCredentials   = ClientCredentials "4e9dcb80-efcd-484c-b3d7-1e95a0096ac0"}
 
 -- | Run a Keycloak monad within IO.
-runKeycloak :: Keycloak a -> KCConfig -> IO (Either KCError a)
-runKeycloak kc conf = runExceptT $ runReaderT kc conf
+runKeycloak :: Monad m => KeycloakT m a -> KCConfig -> m (Either KCError a)
+runKeycloak kc conf = runExceptT $ runReaderT (unKeycloakT kc) conf
 
 type Path = Text
 
@@ -109,7 +120,7 @@ data TokenRep = TokenRep {
   tokenType         :: Text,
   notBeforePolicy   :: Int,
   sessionState      :: Text,
-  tokenScope        :: Text} deriving (Show, Eq)
+  tokenScope        :: Text} deriving stock (Show, Eq)
 
 instance FromJSON TokenRep where
   parseJSON (Object v) = TokenRep <$> v .: "access_token"
@@ -126,7 +137,9 @@ instance FromJSON TokenRep where
 
 -- | Scope name, such as "houses:view"
 -- You need to create the scopes in Client/Authorization panel/Authorization scopes tab
-newtype ScopeName = ScopeName {unScopeName :: Text} deriving (Eq, Generic, Ord, Hashable)
+newtype ScopeName = ScopeName {unScopeName :: Text}
+    deriving stock (Eq, Generic, Ord)
+    deriving newtype (Hashable)
 
 --JSON instances
 instance ToJSON ScopeName where
@@ -250,7 +263,9 @@ type ResourceName = Text
 type ResourceType = Text
 
 -- | A resource Id
-newtype ResourceId = ResourceId {unResId :: Text} deriving (Show, Eq, Generic, Ord, Hashable)
+newtype ResourceId = ResourceId {unResId :: Text}
+    deriving stock (Show, Eq, Generic, Ord)
+    deriving newtype (Hashable)
 
 -- JSON instances
 instance ToJSON ResourceId where

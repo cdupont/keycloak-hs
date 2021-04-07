@@ -22,7 +22,7 @@
 
 module Keycloak.Users where
 
-import           Control.Monad.Except (throwError)
+import           Control.Monad.IO.Class
 import           Data.Aeson as JSON
 import           Data.Text as T hiding (head, tail, map)
 import           Data.String.Conversions
@@ -33,7 +33,7 @@ import           Network.HTTP.Types (renderQuery)
 -- * Users
 
 -- | Get users. Default number of users is 100. Parameters max and first allow to paginate and retrieve more than 100 users.
-getUsers :: Maybe Max -> Maybe First -> Maybe Username -> JWT -> Keycloak [User]
+getUsers :: MonadIO m => Maybe Max -> Maybe First -> Maybe Username -> JWT ->  KeycloakT m [User]
 getUsers mmax first username tok = do
   let query = maybe [] (\m -> [("max", Just $ convertString $ show m)]) mmax
            ++ maybe [] (\f -> [("first", Just $ convertString $ show f)]) first
@@ -46,10 +46,10 @@ getUsers mmax first username tok = do
       return ret
     Left (err2 :: String) -> do
       debug $ "Keycloak parse error: " ++ (show err2) 
-      throwError $ ParseError $ pack (show err2)
+      kcError $ ParseError $ pack (show err2)
 
 -- | Get a single user, based on his Id
-getUser :: UserId -> JWT -> Keycloak User
+getUser :: MonadIO m => UserId -> JWT ->  KeycloakT m User
 getUser (UserId uid) tok = do
   body <- keycloakAdminGet ("users/" <> (convertString uid)) tok 
   debug $ "Keycloak success: " ++ (show body) 
@@ -59,17 +59,17 @@ getUser (UserId uid) tok = do
       return ret
     Left (err2 :: String) -> do
       debug $ "Keycloak parse error: " ++ (show err2) 
-      throwError $ ParseError $ pack (show err2)
+      kcError $ ParseError $ pack (show err2)
 
 -- | Create a user
-createUser :: User -> JWT -> Keycloak UserId
+createUser :: MonadIO m => User -> JWT ->  KeycloakT m UserId
 createUser user tok = do
   res <- keycloakAdminPost ("users/") (toJSON user) tok 
   debug $ "Keycloak success: " ++ (show res) 
   return $ UserId $ convertString res
 
 -- | Get a single user, based on his Id
-updateUser :: UserId -> User -> JWT -> Keycloak ()
+updateUser :: MonadIO m => UserId -> User -> JWT ->  KeycloakT m ()
 updateUser (UserId uid) user tok = do
   keycloakAdminPut ("users/" <> (convertString uid)) (toJSON user) tok 
   return ()
