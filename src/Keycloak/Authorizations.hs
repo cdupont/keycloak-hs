@@ -28,7 +28,6 @@
 module Keycloak.Authorizations where
 
 import           Control.Monad.Reader as R
-import           Control.Monad.Except (throwError)
 import           Data.Aeson as JSON
 import           Data.Text as T hiding (head, tail, map)
 import           Data.Either
@@ -45,19 +44,19 @@ import           Safe
 -- * Permissions
 
 -- | Returns true if the resource is authorized under the given scope.
-isAuthorized :: ResourceId -> ScopeName -> JWT -> Keycloak Bool
+isAuthorized :: MonadIO m => ResourceId -> ScopeName -> JWT -> KeycloakT m Bool
 isAuthorized res scope tok = do
   r <- U.try $ checkPermission res scope tok
   case r of
     Right _ -> return True
     Left e | (statusCode <$> U.getErrorStatus e) == Just 403 -> return False
-    Left e -> throwError e --rethrow the error
+    Left e -> kcError e --rethrow the error
 
 -- | Return the permissions for the permission requests.
-getPermissions :: [PermReq] -> JWT -> Keycloak [Permission]
+getPermissions :: MonadIO m => [PermReq] -> JWT -> KeycloakT m [Permission]
 getPermissions reqs tok = do
   debug "Get all permissions"
-  client <- view $ confAdapterConfig.confResource
+  client <- viewConfig $ confAdapterConfig.confResource
   let dat = ["grant_type" := ("urn:ietf:params:oauth:grant-type:uma-ticket" :: Text),
              "audience" := client,
              "response_mode" := ("permissions" :: Text)] 
@@ -69,7 +68,7 @@ getPermissions reqs tok = do
       return ret
     Left (err2 :: String) -> do
       debug $ "Keycloak parse error: " ++ (show err2) 
-      throwError $ ParseError $ pack (show err2)
+      kcError $ ParseError $ pack (show err2)
   where
     getPermString :: PermReq -> [Text]
     getPermString (PermReq (Just (ResourceId rid)) []) = [rid]
@@ -77,10 +76,10 @@ getPermissions reqs tok = do
     getPermString (PermReq Nothing scopes) = map (\(ScopeName s) -> ("#" <> s)) scopes
 
 -- | Checks if a scope is permitted on a resource. An HTTP Exception 403 will be thrown if not.
-checkPermission :: ResourceId -> ScopeName -> JWT -> Keycloak ()
+checkPermission :: MonadIO m => ResourceId -> ScopeName -> JWT -> KeycloakT m ()
 checkPermission (ResourceId res) (ScopeName scope) tok = do
   debug $ "Checking permissions: " ++ (show res) ++ " " ++ (show scope)
-  client <- view $ confAdapterConfig.confResource
+  client <- viewConfig $ confAdapterConfig.confResource
   let dat = ["grant_type" := ("urn:ietf:params:oauth:grant-type:uma-ticket" :: Text),
              "audience" := client,
              "permission"  := res <> "#" <> scope]
@@ -90,7 +89,7 @@ checkPermission (ResourceId res) (ScopeName scope) tok = do
 -- * Resource
 
 -- | Create an authorization resource in Keycloak, under the configured client.
-createResource :: Resource -> JWT -> Keycloak ResourceId
+createResource :: MonadIO m => Resource -> JWT -> KeycloakT m ResourceId
 createResource r tok = do
   debug $ convertString $ "Creating resource: " <> (JSON.encode r)
   body <- keycloakPost "authz/protection/resource_set" (toJSON r) tok
@@ -101,17 +100,17 @@ createResource r tok = do
       return $ fromJustNote "create" $ resId ret
     Left err2 -> do
       debug $ "Keycloak parse error: " ++ (show err2) 
-      throwError $ ParseError $ pack (show err2)
+      kcError $ ParseError $ pack (show err2)
 
 -- | Delete the resource
-deleteResource :: ResourceId -> JWT -> Keycloak ()
+deleteResource :: MonadIO m => ResourceId -> JWT -> KeycloakT m ()
 deleteResource (ResourceId rid) tok = do
   --tok2 <- getClientAuthToken 
   keycloakDelete ("authz/protection/resource_set/" <> rid) tok
   return ()
 
 -- | Delete all resources in Keycloak
-deleteAllResources :: JWT -> Keycloak ()
+deleteAllResources :: MonadIO m => JWT ->  KeycloakT m ()
 deleteAllResources tok = do
   debug "Deleting all Keycloak resources..."
   ids <- getAllResourceIds
@@ -119,7 +118,7 @@ deleteAllResources tok = do
   debug $ "Deleted " ++ (show $ L.length $ rights res) ++ " resources out of " ++ (show $ L.length ids)
 
 -- | get a single resource
-getResource :: ResourceId -> JWT -> Keycloak Resource
+getResource :: MonadIO m => ResourceId -> JWT -> KeycloakT m Resource
 getResource (ResourceId rid) tok = do
   body <- keycloakGet ("authz/protection/resource_set/" <> rid) tok
   case eitherDecode body of
@@ -127,10 +126,10 @@ getResource (ResourceId rid) tok = do
       return ret
     Left (err2 :: String) -> do
       debug $ "Keycloak parse error: " ++ (show err2) 
-      throwError $ ParseError $ pack (show err2)
+      kcError $ ParseError $ pack (show err2)
 
 -- | get all resources IDs
-getAllResourceIds :: Keycloak [ResourceId]
+getAllResourceIds :: MonadIO m => KeycloakT m [ResourceId]
 getAllResourceIds = do
   debug "Get all resources"
   tok2 <- getClientJWT 
@@ -140,9 +139,8 @@ getAllResourceIds = do
       return ret
     Left (err2 :: String) -> do
       debug $ "Keycloak parse error: " ++ (show err2) 
-      throwError $ ParseError $ pack (show err2)
+      kcError $ ParseError $ pack (show err2)
 
 -- | Update a resource
-updateResource :: Resource -> JWT -> Keycloak ResourceId
+updateResource :: MonadIO m => Resource -> JWT ->  KeycloakT m ResourceId
 updateResource = createResource
-

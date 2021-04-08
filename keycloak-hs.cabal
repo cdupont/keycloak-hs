@@ -1,6 +1,6 @@
 cabal-version: 1.12
 name: keycloak-hs
-version: 2.1.0
+version: 3.0.0
 license: BSD3
 license-file: LICENSE
 copyright: 2019 Corentin Dupont
@@ -48,6 +48,7 @@ library
         jose >=0.8 && <0.9,
         lens >=4.17 && <4.20,
         lens-aeson >=1.1 && <1.2,
+        monad-time >= 0.3 && <0.4,
         mtl >=2.2 && <2.3,
         string-conversions >=0.4 && <0.5,
         safe >=0.3 && <0.4,

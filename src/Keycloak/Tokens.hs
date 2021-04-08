@@ -39,7 +39,8 @@
 module Keycloak.Tokens where
 
 import           Control.Lens hiding ((.=))
-import           Control.Monad.Except (throwError)
+import           Control.Monad.IO.Class
+import           Control.Monad.Time (MonadTime)
 import           Crypto.JWT as JWT
 import           Data.Aeson as JSON
 import           Data.Aeson.Lens
@@ -54,11 +55,11 @@ import           Network.Wreq as W hiding (statusCode)
 
 -- | Retrieve the user's token. This token can be used to authenticate the user.
 -- This token can be also used for every other Keycloak calls.
-getJWT :: Username -> Password -> Keycloak JWT
-getJWT username password = do 
+getJWT :: MonadIO m => Username -> Password ->  KeycloakT m JWT
+getJWT username password = do
   debug "Get user token"
-  client <- view $ confAdapterConfig.confResource
-  secret <- view $ confAdapterConfig.confCredentials.confSecret
+  client <- viewConfig $ confAdapterConfig.confResource
+  secret <- viewConfig $ confAdapterConfig.confCredentials.confSecret
   let dat = ["client_id" := client, 
              "client_secret" := secret,
              "grant_type" := ("password" :: Text),
@@ -67,19 +68,19 @@ getJWT username password = do
   body <- keycloakPost' "protocol/openid-connect/token" dat
   debug $ "Keycloak: " ++ (show body) 
   case eitherDecode body of
-    Right ret -> do 
+    Right ret -> do
       debug $ "Keycloak success: " ++ (show ret) 
-      decodeCompact $ convertString $ accessToken ret
+      KeycloakT $ decodeCompact $ convertString $ accessToken ret
     Left err2 -> do
       debug $ "Keycloak parse error: " ++ (show err2) 
-      throwError $ ParseError $ pack (show err2)
+      kcError $ ParseError $ pack (show err2)
 
 -- | return a Client token (linked to a Client, not a User). It is useful to create Resources in that Client in Keycloak.
-getClientJWT :: Keycloak JWT
+getClientJWT :: MonadIO m => KeycloakT m JWT
 getClientJWT = do
   debug "Get client token"
-  client <- view $ confAdapterConfig.confResource
-  secret <- view $ confAdapterConfig.confCredentials.confSecret
+  client <- viewConfig $ confAdapterConfig.confResource
+  secret <- viewConfig $ confAdapterConfig.confCredentials.confSecret
   let dat = ["client_id" := client, 
              "client_secret" := secret,
              "grant_type" := ("client_credentials" :: Text)]
@@ -87,17 +88,17 @@ getClientJWT = do
   case eitherDecode body of
     Right ret -> do
       debug $ "Keycloak success: " ++ (show ret) 
-      decodeCompact $ convertString $ accessToken ret
+      KeycloakT $ decodeCompact $ convertString $ accessToken ret
     Left err2 -> do
       debug $ "Keycloak parse error: " ++ (show err2) 
-      throwError $ ParseError $ pack (show err2)
+      kcError $ ParseError $ pack (show err2)
 
 
 -- | Verify a JWT. If sucessful, the claims are returned. Otherwise, a JWTError is thrown. 
-verifyJWT :: JWT -> Keycloak ClaimsSet
+verifyJWT :: (MonadTime m, MonadIO m) => JWT -> KeycloakT m ClaimsSet
 verifyJWT jwt = do
-  jwks <- view confJWKs
-  verifyClaims (defaultJWTValidationSettings (const True)) (head jwks) jwt
+  jwks <- viewConfig confJWKs
+  KeycloakT $ verifyClaims (defaultJWTValidationSettings (const True)) (head jwks) jwt
 
 -- | Extract the user identity from a token. Additional attributes can be encoded in the token.
 getClaimsUser :: ClaimsSet -> User
@@ -114,14 +115,14 @@ getClaimsUser claims = User { userId          = Just $ UserId $ view (claimSub .
 getJWKs :: Realm -> ServerURL -> IO [JWK]
 getJWKs realm baseUrl = do
   let opts = W.defaults
-  let url = (unpack $ baseUrl <> "/realms/" <> realm <> "/protocol/openid-connect/certs") 
-  info $ "Issuing KEYCLOAK GET with url: " ++ (show url) 
-  debug $ "  headers: " ++ (show $ opts ^. W.headers) 
+  let url = unpack (baseUrl <> "/realms/" <> realm <> "/protocol/openid-connect/certs")
+  info $ "Issuing KEYCLOAK GET with url: " ++ show url
+  debug $ "  headers: " ++ show (opts ^. W.headers)
   res <- W.getWith opts url
   let body = fromJust $ res ^? responseBody
   info $ show body
   case eitherDecode body of
      Right (JWKSet jwks) -> return jwks
      Left (err2 :: String) -> do
-       debug $ "Keycloak parse error: " ++ (show err2) 
-       error $ (show err2)
+       debug $ "Keycloak parse error: " ++ show err2
+       error $ show err2
