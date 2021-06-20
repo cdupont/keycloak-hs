@@ -146,7 +146,7 @@ Now create a ressource that can be viewed:
 ![res](img/res.png)
 
 Create a new policy in the "Policies" tab with the following settings:
-- Select "User" policy
+- Select "User" as policy type
 - Name it "Demo user have access".
 - Select user "demo" in the drop box.
 - Logic should be positive.
@@ -160,7 +160,7 @@ Create a new scope-based permission in the "Permissions" tab:
 
 ![perm2](img/perm2.png)
 
-We have now encoded that our user "demo" can view our resource.
+We have now encoded that our user "demo" can view our resource "MyRessource".
 That's it for the confguration of Keycloak.
 We are now able to ask to Keycloak if a user has view access to our ressource:
 
