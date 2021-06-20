@@ -21,15 +21,15 @@ Add a client named "demo":
 
 Then download the adapter config file in JSON format.
 
-[adapter](img/adapter.png)p
+[adapter](img/adapter.png)
 
-Place it in this folder.
+Place the file "keycloak.json" in this folder.
 
 Authentication
 --------------
 
 The first function of Keycloak is to authenticate your users.
-It can act as a login portal for your application: your users will be able to create an account.
+It can act as a login portal for your application: your users will be able to create an account autonomously, using e.g. Google or Facebook OpenID.
 So you will not have to create a login page and users database! Everything can be managed from Keycloak.
 
 ![login](img/login.png)
@@ -41,6 +41,9 @@ In Keycloak, create a user named "demo" with password "demo".
 ![user](img/user.png)
 
 Make sure that your user is enable, email verified, and the password is not temporary.
+
+![user2](img/user2.png)
+
 At this point, you should be able to retrieve tokens from Keycloak, verify them using this library, and extract a User from the tokens.
 
 ```
@@ -66,7 +69,8 @@ main = do
 ```    
 
 At this stage, we have a JWT! It contains a lot of informations about the user.
-It can be now verified autonomously, without anymore communication with Keycloak.
+It can be sent to one of your applications. 
+This application will be able to verify it autonomously, without any communication with Keycloak.
 
 ```
     -- Verify the token and retrieve the claims contained within.
