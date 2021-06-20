@@ -79,7 +79,7 @@ This application will be able to verify it autonomously, without any communicati
 ```
 
 The token has be verified. This function would raise an error if the token is wrong/forged. 
-You can also past the token in an external tool to see its content, e.g. https://jwt.io/
+You can also paste the token in an external tool to see its content, e.g. https://jwt.io/
 Using the claims, we can extract all the users informations:
 
 ```
@@ -108,40 +108,68 @@ Fill the name="phone", Mapper Type=User attribute, Token Claim Name="phone", Cla
 
 Do the same for the "admin" attribute.
 Your application is now able to read the phone number, and the admin status of the user, from the token itself.
+This is a very efficient method, because once the token is acquired, no other communication with Keycloak is necessary.
+The Token own embedded signature garantees that the information contained is legitimate.
 
 
 Authorizations
 --------------
 
-Keycloak can also manage your resources and related access policies.
+Keycloak itself can also manage your resources and related access policies.
 The idea is that, each time a user makes a request on your application, you will ask Keycloak "Can he really do that??".
+This is a somewhat slower method that using the Token's claims to decide if a user has access to some resource in your application.
+However, there is some merit in delegating all the authorization logic to Keycloak. 
+The authorization logic will be centralized in Keycloak, instead of being disseminated in your applications.
 
 In the client "demo":
 - change "Access Type" to confidential
 - turn "Authorization Enabled" ON.
+- add "*" in Valid Redirect URIs.
+
+![auth](img/auth.png)
 
 A new "Authorization" tab should appear.
 
 Let's set up some authorization policies in order to demonstrate the capacity of Keycloak-hs.
 We want to authorize our user "demo" to "view" any resource.
 First go in the new "Authorization" tab that appeared.
-Flip ON "Remote Resource Management".
+Flip the "Remote Resource Management" on.
+
+![remote](img/remote.png)
 
 Create a new Scope in the "Authorization Scopes" tab:
 - Name it "view".
 
-Create a new "User" policy in the "Policies" tab with the following settings:
+![scope](img/scope.png)
+
+Now create a ressource that can be viewed:
+
+![res](img/res.png)
+
+Create a new policy in the "Policies" tab with the following settings:
+- Select "User" policy
 - Name it "Demo user have access".
 - Select user "demo" in the drop box.
 - Logic should be positive.
+
+![policy2](img/policy2.png)
 
 Create a new scope-based permission in the "Permissions" tab:
 - Name it "View resources".
 - Select "view" in Scopes.
 - Select your previous policy "Demo user have access" in "Apply Policy".
 
+![perm2](img/perm2.png)
+
 That's it for the confguration of Keycloak.
-You are now able to play with the "Authorization" part of the example.
+We are now able to ask to Keycloak if a user has view access to our ressource:
+
+```
+    -- * Can our user access this resource?
+    isAuth <- isAuthorized resId (ScopeName "view") jwt
+```
+
+If the answer if True, Bingo! The user has access.
 Keycloak is very complex, so you'll have fun exploring all the possibilities ;)
 
 Enjoy!
