@@ -21,7 +21,7 @@ Add a client named "demo":
 
 Then download the adapter config file in JSON format.
 
-[adapter](img/adapter.png)
+![adapter](img/adapter.png)
 
 Place the file "keycloak.json" in this folder.
 
