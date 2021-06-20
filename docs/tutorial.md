@@ -131,14 +131,13 @@ In the client "demo":
 A new "Authorization" tab should appear.
 
 Let's set up some authorization policies in order to demonstrate the capacity of Keycloak-hs.
-We want to authorize our user "demo" to "view" any resource.
+We want to authorize our user "demo" to "view" some resource.
 First go in the new "Authorization" tab that appeared.
 Flip the "Remote Resource Management" on.
 
 ![remote](img/remote.png)
 
-Create a new Scope in the "Authorization Scopes" tab:
-- Name it "view".
+Create a new Scope in the "Authorization Scopes" tab. Name it "view".
 
 ![scope](img/scope.png)
 
@@ -161,6 +160,7 @@ Create a new scope-based permission in the "Permissions" tab:
 
 ![perm2](img/perm2.png)
 
+We have now encoded that our user "demo" can view our resource.
 That's it for the confguration of Keycloak.
 We are now able to ask to Keycloak if a user has view access to our ressource:
 
