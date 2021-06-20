@@ -1,5 +1,6 @@
 Keycloak-hs
 ===========
+[![Build status](https://github.com/cdupont/keycloak-hs/actions/workflows/ci.yml/badge.svg)](https://github.com/cdupont/keycloak-hs/actions/workflows/ci.yml)
 
 Keycloak-hs is an Haskell library for connecting to [Keycloak](https://www.keycloak.org/).
 Keycloak allows to authenticate and manage users and to protect API resources.
