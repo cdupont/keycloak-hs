@@ -165,8 +165,8 @@ That's it for the confguration of Keycloak.
 We are now able to ask to Keycloak if a user has view access to our ressource:
 
 ```
-    -- * Can our user access this resource?
-    isAuth <- isAuthorized resId (ScopeName "view") jwt
+    -- * Can our user view our resource?
+    isAuth <- isAuthorized (ResourceId "MyResource") (ScopeName "view") jwt
 ```
 
 If the answer if True, Bingo! The user has access.
