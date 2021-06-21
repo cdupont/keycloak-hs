@@ -1,16 +1,15 @@
 Tutorial
 ========
 
+Keycloak does two things for your application: *Authentication* and *Authorization*. Authentication tries to answer the question "Who are you?".
+Authorization tries to answer the question "What do you have access to?"
+Keycloak can manage the list of users for your applications, identify them and grant them access rights to any resource.
+
 In this tutorial, we'll configure Keycloak for running our [small example](../examples/Main.hs).
 First you should install and run Keycloak: [follow this tutorial](https://www.keycloak.org/docs/latest/getting_started/index.html).
+Once Keycloak is running, Log in its admin interface at http://localhost:8080
 
-The example is compiled and run this way:
-```
-$ stack install
-$ example
-```
-
-But before running it, we should create a Client in Keycloak and retrieve the adapter config file.
+We should create a few things in Keycloak before starting.
 In Keycloak admin panel, a realm named "demo":
 
 ![realm](img/realm.png)
@@ -19,11 +18,17 @@ Add a client named "demo":
 
 ![client](img/client.png)
 
-Then download the adapter config file in JSON format.
+Then download the "adapter config file" in JSON format.
 
 ![adapter](img/adapter.png)
 
-Place the file "keycloak.json" in this folder.
+Place the file "keycloak.json" in this folder. This file will be used by your application to communicate with Keycloak.
+
+The example is compiled and run this way:
+```
+$ stack install
+$ example
+```
 
 Authentication
 --------------
