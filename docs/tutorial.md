@@ -7,10 +7,10 @@ Keycloak can manage the list of users for your applications, identify them and g
 
 In this tutorial, we'll configure Keycloak for running our [small example](../examples/Main.hs).
 First you should install and run Keycloak: [follow this tutorial](https://www.keycloak.org/docs/latest/getting_started/index.html).
-Once Keycloak is running, Log in its admin interface at http://localhost:8080
+Once Keycloak is running, log in its admin interface at http://localhost:8080
 
 We should create a few things in Keycloak before starting.
-In Keycloak admin panel, a realm named "demo":
+In Keycloak admin panel, create a realm named "demo":
 
 ![realm](img/realm.png)
 
@@ -18,6 +18,7 @@ Add a client named "demo":
 
 ![client](img/client.png)
 
+This client will be the access point between our application and Keycloak.
 Then download the "adapter config file" in JSON format.
 
 ![adapter](img/adapter.png)
@@ -39,17 +40,19 @@ So you will not have to create a login page and users database! Everything can b
 
 ![login](img/login.png)
 
-Authentication with Keycloak is based on [JWTs](https://jwt.io/).
-
+For the time being, we'll create the user manually.
 In Keycloak, create a user named "demo" with password "demo".
 
 ![user](img/user.png)
 
-Make sure that your user is enable, email verified, and the password is not temporary.
+Make sure that your user is enabled, email verified, and the password is not temporary.
 
 ![user2](img/user2.png)
 
-At this point, you should be able to retrieve tokens from Keycloak, verify them using this library, and extract a User from the tokens.
+At this point, you should be able to retrieve "tokens" from Keycloak!
+Those tokens are used to authenticate your users. They contain user infos and are signed cryptographically.
+They are based on [JSON Web Token](https://jwt.io/).
+This library can verify the tokens, and extract user infos from them.
 
 ```
 {-# LANGUAGE OverloadedStrings #-}
