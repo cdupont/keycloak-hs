@@ -138,7 +138,7 @@ In the client "demo":
 
 A new "Authorization" tab should appear.
 
-Let's set up some authorization policies in order to demonstrate the capacity of Keycloak-hs.
+Let's set up some authorization policies in order to demonstrate the capacity of Keycloak and Keycloak-hs.
 We want to authorize our user "demo" to "view" some resource.
 First go in the new "Authorization" tab that appeared.
 Flip the "Remote Resource Management" on.
@@ -153,7 +153,10 @@ Now create a ressource that can be viewed:
 
 ![res](img/res.png)
 
-Create a new policy in the "Policies" tab with the following settings:
+This resource could be an API endpoint, a network resource, an application feature, anything! 
+It's up to you to decide and create a taxonomy of resources that you want to protect.
+
+Now create a new policy in the "Policies" tab with the following settings:
 - Select "User" as policy type
 - Name it "Demo user have access".
 - Select user "demo" in the drop box.
