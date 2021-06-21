@@ -119,6 +119,15 @@ Your application is now able to read the phone number, and the admin status of t
 This is a very efficient method, because once the token is acquired, no other communication with Keycloak is necessary.
 The Token own embedded signature garantees that the information contained is legitimate.
 
+This is the user I retrieved from the token:
+```
+User {
+  id = "c5585ce6-2672-49d9-8e5f-94beecde1b64"
+  username = "demo"
+  phone = "1234"
+  admin = True
+}
+```
 
 Authorizations
 --------------
