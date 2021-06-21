@@ -133,7 +133,8 @@ Authorizations
 --------------
 
 Keycloak itself can also manage your resources and related access policies.
-The idea is that, each time a user makes a request on your application, you will ask Keycloak "Can he really do that??".
+The idea is that, each time a user makes a request on your application, you will turn to Keycloak and ask "Can he really do that??".
+
 This is a somewhat slower method that using the Token's claims to decide if a user has access to some resource in your application.
 However, there is some merit in delegating all the authorization logic to Keycloak. 
 The authorization logic will be centralized in Keycloak, instead of being disseminated in your applications.
