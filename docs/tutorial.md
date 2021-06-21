@@ -164,7 +164,9 @@ Now create a new policy in the "Policies" tab with the following settings:
 
 ![policy2](img/policy2.png)
 
-Create a new scope-based permission in the "Permissions" tab:
+This policy, when it is activated, will grant access to our user Demo.
+
+To tie it all together, create a new scope-based permission in the "Permissions" tab:
 - Name it "View resources".
 - Select "view" in Scopes.
 - Select your previous policy "Demo user have access" in "Apply Policy".
