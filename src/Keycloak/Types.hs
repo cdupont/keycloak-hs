@@ -10,6 +10,7 @@
 module Keycloak.Types where
 
 import           Data.Aeson
+import           Data.Aeson.Key
 import           Data.Aeson.Casing
 import           Data.Hashable
 import           Data.Text hiding (head, tail, map, toLower, drop)
@@ -217,6 +218,7 @@ newtype UserId = UserId {unUserId :: Text} deriving (Show, Eq, Generic)
 instance ToJSON UserId where
   toJSON = genericToJSON (defaultOptions {unwrapUnaryRecords = True})
 
+
 instance FromJSON UserId where
   parseJSON = genericParseJSON (defaultOptions {unwrapUnaryRecords = True})
 
@@ -227,7 +229,7 @@ data User = User
   , userFirstName  :: Maybe Text     -- ^ First name
   , userLastName   :: Maybe Text     -- ^ Last name
   , userEmail      :: Maybe Text     -- ^ Email
-  , userAttributes :: Maybe (HM.HashMap Text Value)
+  , userAttributes :: Maybe (Map Text Value)
   } deriving (Show, Eq, Generic)
 
 unCapitalize :: String -> String
@@ -311,7 +313,7 @@ instance ToJSON Resource where
             "scopes"             .= toJSON scopes,
             "owner"              .= (toJSON $ ownName own),
             "ownerManagedAccess" .= toJSON uma,
-            "attributes"         .= object (map (\(Attribute aname vals) -> aname .= toJSON vals) attrs)]
+            "attributes"         .= object (map (\(Attribute aname vals) -> fromText aname .= toJSON vals) attrs)]
 
 -- | A resource attribute
 data Attribute = Attribute {
@@ -323,7 +325,7 @@ instance FromJSON Attribute where
   parseJSON = genericParseJSON $ aesonDrop 3 camelCase 
 
 instance ToJSON Attribute where
-  toJSON (Attribute name vals) = object [name .= toJSON vals] 
+  toJSON (Attribute name vals) = object [fromText name .= toJSON vals] 
 
 
 
